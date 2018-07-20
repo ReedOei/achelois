@@ -22,9 +22,9 @@ run_compile(Path, Commit, System, Goal, Output) :-
     % Retrieve information about the build system so we can actually run it.
     exe_name(System, SystemPath),
     goal_name(System, Goal, GoalName),
-    read_process(TempRepoPath, SystemPath, [GoalName], Output),
+    read_process(Path, SystemPath, [GoalName], Output),
 
     string_concat_list([Commit, "-", GoalName, "-output.txt"] , OutputFilename),
-    directory_file_path(ResultPath, OutputFilename, OutputPath),
+    directory_file_path(Path, OutputFilename, OutputPath),
     write_file(OutputPath, Output).
 
