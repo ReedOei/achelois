@@ -1,7 +1,6 @@
 :- module(utility, [string_concat_list/2, intercalate/3, lookup_path/2,
                     read_process/3, read_process/4, read_process/5,
-                    read_file/2, write_file/2, list_empty/1, clone_project/3,
-                    maven_module/2, modules/2]).
+                    read_file/2, write_file/2, list_empty/1, clone_project/3]).
 
 :- use_module(library(filesex)).
 
@@ -58,15 +57,4 @@ clone_project(Url, Commit, Path) :-
 list_files(Path, Files) :-
     directory_file_path(Path, "*", Wildcard),
     expand_file_name(Wildcard, Files).
-
-maven_module(Path, ModulePath) :-
-    file_base_name(Path, 'pom.xml'),
-    file_directory_name(Path, ModulePath).
-maven_module(Path, ModulePath) :-
-    exists_directory(Path),
-    list_files(Path, Files),
-    member(File, Files),
-    maven_module(File, ModulePath).
-
-modules(Path, Modules) :- findall(ModulePath, maven_module(Path, ModulePath), Modules).
 
