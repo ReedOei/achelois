@@ -1,4 +1,4 @@
-:- module(try_compile, [try_compile/2]).
+:- module(try_compile, [try_compile/2, compiles/4]).
 
 :- use_module(library(filesex)).
 
