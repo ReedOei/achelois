@@ -29,7 +29,9 @@ run_compile(Path, System, Goal, Output) :-
     exe_name(System, SystemPath),
     goal_name(System, Goal, GoalName),
 
-    read_process(Path, SystemPath, [GoalName], Output),
+    extra_args(System, Goal, ExtraArgs),
+    append([GoalName], ExtraArgs, Args),
+    read_process(Path, SystemPath, Args, Output),
 
     directory_file_path(Path, "compile-output.txt", OutputPath),
     write_file(OutputPath, Output).
