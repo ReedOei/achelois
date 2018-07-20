@@ -50,4 +50,3 @@ maven_module(Path, ModulePath) :-
 
 maven_modules(Path, Modules) :- findall(ModulePath, maven_module(Path, ModulePath), Modules).
 
-

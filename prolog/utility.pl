@@ -1,6 +1,7 @@
 :- module(utility, [string_concat_list/2, intercalate/3, lookup_path/2,
                     read_process/3, read_process/4, read_process/5,
-                    read_file/2, write_file/2, list_empty/1, clone_project/3]).
+                    read_file/2, write_file/2, list_empty/1, clone_project/3,
+                    list_files/2]).
 
 :- use_module(library(filesex)).
 
