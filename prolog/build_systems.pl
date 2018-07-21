@@ -32,9 +32,9 @@ goal_name(gradle, testCompile, "assemble").
 goal_name(gradle, test, "test").
 
 % If some build system needs additional arguments for any goal,
-% use this to include them.
+% this is used to include them.
 extra_args(_, _, []).
-extra_args(maven, dependencies, ["-Drat.skip"]).
+extra_args(maven, dependencies, ["install", "-fn", "-DskipTests", "-Drat.skip"]).
 extra_args(maven, package, ["-DskipTests"]).
 
 exe_name(maven, path(mvn)).
