@@ -31,22 +31,16 @@ lookup_path(ExeName, Path) :-
 run_process(Exe, Args) :- run_process(".", Exe, Args).
 run_process(Path, Exe, Args) :- run_process(Path, Exe, Args, _).
 run_process(Path, Exe, Args, ExitCode) :-
-    catch((
-            process_create(Exe, Args, [cwd(Path), process(PID), detached(true)]),
-            process_wait(PID, _)
-          ),
-          error(process_error(_, exit(ExitCode)), _),
-          true).
+    process_create(Exe, Args, [cwd(Path), process(PID), detached(true)]),
+    process_wait(PID, exit(ExitCode)).
 
 read_process(Exe, Args, Output) :- read_process(".", Exe, Args, Output).
 read_process(Path, Exe, Args, Output) :- read_process(Path, Exe, Args, Output, _).
 read_process(Path, Exe, Args, Output, ExitCode) :-
-    catch((
-            process_create(Exe, Args, [stdout(pipe(OutputStream)), cwd(Path), process(PID), detached(true)]),
-            process_wait(PID, _),
-            read_string(OutputStream, _, Output),
-            close(OutputStream)
-          ), error(process_error(_, exit(ExitCode)), _), true).
+    process_create(Exe, Args, [stdout(pipe(OutputStream)), cwd(Path), process(PID), detached(true)]),
+    read_string(OutputStream, _, Output),
+    process_wait(PID, exit(ExitCode)),
+    close(OutputStream).
 
 read_file(Path, Lines) :-
     open(Path, read, Stream),
