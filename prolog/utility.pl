@@ -1,7 +1,7 @@
 :- module(utility, [string_concat_list/2, intercalate/3, lookup_path/2,
                     read_process/3, read_process/4, read_process/5,
                     read_file/2, write_file/2, list_empty/1, clone_project/3,
-                    list_files/2]).
+                    list_files/2, run_process/2, run_process/3, run_process/4]).
 
 :- use_module(library(filesex)).
 
@@ -27,6 +27,13 @@ intercalate([H|T], Sep, [H, Sep | List]) :- intercalate(T, Sep, List).
 lookup_path(ExeName, Path) :-
     read_process(".", path(which), [ExeName], TempPath),
     replace(TempPath, "\n", "", Path).
+
+run_process(Exe, Args) :- run_process(".", Exe, Args).
+run_process(Path, Exe, Args) :- run_process(Path, Exe, Args, _).
+run_process(Path, Exe, Args, ExitCode) :-
+    catch(process_create(Exe, Args, [cwd(Path)]),
+          error(process_error(_, exit(ExitCode)), _),
+          true).
 
 read_process(Exe, Args, Output) :- read_process(".", Exe, Args, Output).
 read_process(Path, Exe, Args, Output) :- read_process(Path, Exe, Args, Output, _).

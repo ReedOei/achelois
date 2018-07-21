@@ -31,7 +31,9 @@ goal_name(gradle, compile, "assemble").
 goal_name(gradle, testCompile, "assemble").
 goal_name(gradle, test, "test").
 
-extra_args(System, Goal, []).
+% If some build system needs additional arguments for any goal,
+% use this to include them.
+extra_args(_, _, []).
 extra_args(maven, dependencies, ["-Drat.skip"]).
 extra_args(maven, package, ["-DskipTests"]).
 
