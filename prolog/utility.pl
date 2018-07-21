@@ -31,7 +31,10 @@ lookup_path(ExeName, Path) :-
 run_process(Exe, Args) :- run_process(".", Exe, Args).
 run_process(Path, Exe, Args) :- run_process(Path, Exe, Args, _).
 run_process(Path, Exe, Args, ExitCode) :-
-    catch(process_create(Exe, Args, [cwd(Path)]),
+    catch((
+            process_create(Exe, Args, [cwd(Path), process(PID), detached(true)]),
+            process_wait(PID, _)
+          ),
           error(process_error(_, exit(ExitCode)), _),
           true).
 
@@ -39,7 +42,8 @@ read_process(Exe, Args, Output) :- read_process(".", Exe, Args, Output).
 read_process(Path, Exe, Args, Output) :- read_process(Path, Exe, Args, Output, _).
 read_process(Path, Exe, Args, Output, ExitCode) :-
     catch((
-            process_create(Exe, Args, [stdout(pipe(OutputStream)), cwd(Path)]),
+            process_create(Exe, Args, [stdout(pipe(OutputStream)), cwd(Path), process(PID), detached(true)]),
+            process_wait(PID, _),
             read_string(OutputStream, _, Output),
             close(OutputStream)
           ), error(process_error(_, exit(ExitCode)), _), true).
