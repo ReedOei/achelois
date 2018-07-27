@@ -16,38 +16,38 @@ goal(package).
 goal(dependencies).
 goal(install).
 
-goal_name(maven, compile, "compile").
-goal_name(maven, testCompile, "test-compile").
-goal_name(maven, test, "test").
-goal_name(maven, package, "package").
-goal_name(maven, dependencies, "dependency:copy-dependencies").
-goal_name(maven, install, "install").
+goal_name(maven, compile, 'compile').
+goal_name(maven, testCompile, 'test-compile').
+goal_name(maven, test, 'test').
+goal_name(maven, package, 'package').
+goal_name(maven, dependencies, 'dependency:copy-dependencies').
+goal_name(maven, install, 'install').
 
-goal_name(ant, compile, "build").
-goal_name(ant, testCompile, "build").
-goal_name(ant, test, "test").
+goal_name(ant, compile, 'build').
+goal_name(ant, testCompile, 'build').
+goal_name(ant, test, 'test').
 
-goal_name(gradle, compile, "assemble").
-goal_name(gradle, testCompile, "assemble").
-goal_name(gradle, test, "test").
+goal_name(gradle, compile, 'assemble').
+goal_name(gradle, testCompile, 'assemble').
+goal_name(gradle, test, 'test').
 
 % If some build system needs additional arguments for any goal,
 % this is used to include them.
 extra_args(_, _, []).
-extra_args(maven, dependencies, ["install", "-fn", "-DskipTests", "-Drat.skip"]).
-extra_args(maven, package, ["-DskipTests"]).
+extra_args(maven, dependencies, ['install', '-fn', '-DskipTests', '-Drat.skip']).
+extra_args(maven, package, ['-DskipTests']).
 
 exe_name(maven, path(mvn)).
 exe_name(ant, path(ant)).
 exe_name(gradle, path(gradle)).
 
-success_string(maven, "BUILD SUCCESS").
-success_string(ant, "BUILD SUCCESSFUL").
-success_string(gradle, "BUILD SUCCESSFUL").
+success_string(maven, 'BUILD SUCCESS').
+success_string(ant, 'BUILD SUCCESSFUL').
+success_string(gradle, 'BUILD SUCCESSFUL').
 
-buildfile(maven, Path, P) :- directory_file_path(Path, "pom.xml", P).
-buildfile(ant, Path, P) :- directory_file_path(Path, "build.xml", P).
-buildfile(gradle, Path, P) :- directory_file_path(Path, "build.gradle", P).
+buildfile(maven, Path, P) :- directory_file_path(Path, 'pom.xml', P).
+buildfile(ant, Path, P) :- directory_file_path(Path, 'build.xml', P).
+buildfile(gradle, Path, P) :- directory_file_path(Path, 'build.gradle', P).
 
 builds_with(System, Path) :- buildfile(System, Path, P), exists_file(P).
 

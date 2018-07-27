@@ -23,7 +23,7 @@ compiles(Path, System, Goal, Args) :-
         run_compile(ParentPath, System, Goal, Args, Output)
     ),
     success_string(System, SuccessString),
-    sub_string(Output, _, _, _, SuccessString).
+    sub_atom(Output, _, _, _, SuccessString).
 
 run_compile(Path, System, Goal, CustomArgs, Output) :-
     % Retrieve information about the build system so we can actually run it.
@@ -35,6 +35,6 @@ run_compile(Path, System, Goal, CustomArgs, Output) :-
     append(Args, CustomArgs, AllArgs),
     read_process(Path, SystemPath, AllArgs, Output),
 
-    directory_file_path(Path, "compile-output.txt", OutputPath),
+    directory_file_path(Path, 'compile-output.txt', OutputPath),
     write_file(OutputPath, Output).
 
