@@ -1,5 +1,6 @@
 :- module(build_systems, [build_system/1, goal/1, goal_name/3, exe_name/2, builds_with/2, success_string/2,
-                          maven_module/2, maven_modules/2, extra_args/3, classpath/2, classpath/3]).
+                          maven_module/2, maven_modules/2, extra_args/3, classpath/2, classpath/3,
+                          quick_classpath/2, quick_classpath/3]).
 
 :- use_module(library(filesex)).
 
@@ -45,15 +46,24 @@ classpath(maven, Path, Classpath) :-
     read_file(OutputPath, [Classpath|_]),
     delete_file(OutputPath).
 
+find_jars(Path, Jars) :-
+    findall(Jar,
+        (
+            walk(Path, Jar),
+            file_name_extension(_, 'jar', Jar)),
+        Jars).
+
 quick_classpath(Path, Classpath) :-
     builds_with(System, Path),
     quick_classpath(System, Path, Classpath).
 quick_classpath(maven, Path, Classpath) :-
     directory_file_path(Path, 'target/classes', Classes),
     directory_file_path(Path, 'target/test-classes', TestClasses),
-    directory_file_path(Path, 'target/dependency', Dependencies),
-    findall(Jar, (walk(Dependencies, Jar), file_name_extension(_, 'jar', Jar)), Jars),
+    directory_file_path(Path, 'target', TargetPath),
+
+    find_jars(TargetPath, Jars),
     append([Classes, TestClasses], Jars, AllPaths),
+
     atomic_list_concat(AllPaths, ':', Classpath).
 
 % If the specified paths exist, then the goal will not be executed.
