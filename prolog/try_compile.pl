@@ -14,7 +14,10 @@ configurations(RepoPath, System, Goal) :-
 compiles(Path) :- compiles(Path, compile).
 compiles(Path, Goal) :- builds_with(System, Path), compiles(Path, System, Goal).
 compiles(Path, System, Goal) :- compiles(Path, System, Goal, []).
+compiles(Path, System, Goal, Args) :- files_exist(Path, System, Goal).
 compiles(Path, System, Goal, Args) :-
+    not(files_exist(Path, System, Goal)),
+
     (
         run_compile(Path, System, Goal, Args, Output);
 
@@ -24,6 +27,14 @@ compiles(Path, System, Goal, Args) :-
     ),
     success_string(System, SuccessString),
     sub_atom(Output, _, _, _, SuccessString).
+
+files_exist(Path, System, Goal) :-
+    goal_files(System, Goal, Files),
+    forall(member(File, Files),
+        (
+            directory_file_path(Path, File, FullPath),
+            ( exists_file(FullPath); exists_directory(FullPath) )
+        )).
 
 run_compile(Path, System, Goal, CustomArgs, Output) :-
     % Retrieve information about the build system so we can actually run it.

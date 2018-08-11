@@ -1,0 +1,2 @@
+:- module(maven_xml, []).
+

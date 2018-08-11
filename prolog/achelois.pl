@@ -1,3 +1,3 @@
 :- module(achelois, []).
-:- reexport([build_systems, try_compile, utility, git]).
+:- reexport([xml, maven_xml, build_systems, try_compile, utility, git]).
 

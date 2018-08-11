@@ -2,9 +2,26 @@
                     read_process/3, read_process/4, read_process/5,
                     read_file/2, write_file/2, list_empty/1,
                     list_files/2, run_process/2, run_process/3, run_process/4,
-				    walk/2, zip/2]).
+				    walk/2, zip/2, take_while/3, take/3]).
 
 :- use_module(library(filesex)).
+
+% TODO: Add ability to cache files in a directory like .achelois
+% TODO: Finish this:
+cache(Basepath, Pred, Data) :-
+    working_directory(CWD, CWD),
+    directory_file_path(CWD, '.achelois', TempPath),
+    directory_file_path(TempPath, BasePath, Path),
+    cache_global(Path, Pred, Data).
+
+cache_global(BasePath, Pred, Data) :-
+    read_cache(BasePath, Data);
+
+    call(Pred, Data),
+    write_cache(BasePath, Data).
+
+read_cache(Basepath, Data).
+write_cache(Basepath, Data).
 
 list_empty([]).
 
@@ -65,11 +82,41 @@ list_files(Path, Files) :-
     directory_file_path(Path, '*', Wildcard),
     expand_file_name(Wildcard, Files).
 
-walk(Path, Files) :-
+walk(Path, Result) :-
     exists_directory(Path),
     list_files(Path, TempFiles),
-    findall(ChildFiles, (member(Dir, TempFiles), exists_directory(Dir), walk(Dir, ChildFiles)), ChildFileList),
-    flatten([TempFiles|ChildFileList], Files).
-walk(Path, [Path]) :- exists_file(Path).
-walk(_, []). % Path isn't a file or directory, so it just doesn't exist.
+
+    member(File, TempFiles),
+    (
+        Result = File;
+
+        exists_directory(File),
+        walk(File, Result)
+    ).
+walk(Path, Path) :- exists_file(Path).
+
+take_while(_, [], []).
+take_while(Pred, [H|T], [H|Rest]) :- call(Pred, H), take_while(Pred, T, Rest).
+take_while(_, _, []).
+
+take(_, [], []).
+take(0, _, []).
+take(N, [H|T], [H|Rest]) :- N1 is N - 1, take(N1, T, Rest).
+
+same_length(A, B, NewA, NewB) :-
+    length(A, LenA),
+    length(B, LenB),
+    take(LenB, A, NewA),
+    take(LenA, B, NewB).
+
+sublist([], _).
+sublist(SubList, List) :-
+    var(SubList),
+    SubList = [H|T],
+    member(H, List),
+    select(H, List, NewList),
+    sublist(T, NewList).
+sublist(SubList, List) :-
+    nonvar(SubList),
+    forall(member(X, SubList), member(X, List)).
 
