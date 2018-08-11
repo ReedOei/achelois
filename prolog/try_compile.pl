@@ -14,7 +14,7 @@ configurations(RepoPath, System, Goal) :-
 compiles(Path) :- compiles(Path, compile).
 compiles(Path, Goal) :- builds_with(System, Path), compiles(Path, System, Goal).
 compiles(Path, System, Goal) :- compiles(Path, System, Goal, []).
-compiles(Path, System, Goal, Args) :- files_exist(Path, System, Goal).
+compiles(Path, System, Goal, _) :- files_exist(Path, System, Goal).
 compiles(Path, System, Goal, Args) :-
     not(files_exist(Path, System, Goal)),
 

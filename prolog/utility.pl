@@ -2,26 +2,69 @@
                     read_process/3, read_process/4, read_process/5,
                     read_file/2, write_file/2, list_empty/1,
                     list_files/2, run_process/2, run_process/3, run_process/4,
-				    walk/2, zip/2, take_while/3, take/3]).
+				    walk/2, zip/2, take_while/3, take/3, cache/3, cache_global/3,
+                    invalidate_cache/0, invalidate_cache/1]).
 
 :- use_module(library(filesex)).
+:- use_module(library(clpfd)).
 
-% TODO: Add ability to cache files in a directory like .achelois
-% TODO: Finish this:
-cache(Basepath, Pred, Data) :-
+factorial(0, 1).
+factorial(N, F) :-
+    N1 #= N - 1,
+    factorial(N1, F1),
+    F #= N * F1.
+
+% Delete everything
+invalidate_cache :-
+    cache_path('Test', AcheloisPath, _),
+    exists_directory(AcheloisPath),
+    delete_directory_and_contents(AcheloisPath).
+
+% Delete just one part of the cache
+invalidate_cache(BasePath) :-
+    cache_path(BasePath, AcheloisPath, Path),
+    (
+        exists_file(Path),
+        delete_file(Path);
+
+        exists_directory(Path),
+        delete_directory_and_contents(Path)
+    ),
+
+    % Check if cache is empty and delete everything if so
+    (
+        exists_directory(AcheloisPath),
+        list_files(AcheloisPath, []),
+        delete_directory_and_contents(AcheloisPath);
+
+        true
+    ).
+
+cache_path(BasePath, AcheloisPath, Path) :-
     working_directory(CWD, CWD),
-    directory_file_path(CWD, '.achelois', TempPath),
-    directory_file_path(TempPath, BasePath, Path),
+    directory_file_path(CWD, '.achelois', AcheloisPath),
+    directory_file_path(AcheloisPath, BasePath, Path).
+
+cache(BasePath, Pred, Data) :-
+    cache_path(BasePath, _, Path),
     cache_global(Path, Pred, Data).
 
 cache_global(BasePath, Pred, Data) :-
     read_cache(BasePath, Data);
 
-    call(Pred, Data),
+    call(Pred),
     write_cache(BasePath, Data).
 
-read_cache(Basepath, Data).
-write_cache(Basepath, Data).
+read_cache(Path, Data) :-
+    exists_file(Path),
+    read_file(Path, [Atom]),
+    term_to_atom(Data, Atom).
+
+write_cache(Path, Data) :-
+    file_directory_name(Path, Dir),
+    make_directory_path(Dir),
+    term_to_atom(Data, Atom),
+    write_file(Path, Atom).
 
 list_empty([]).
 

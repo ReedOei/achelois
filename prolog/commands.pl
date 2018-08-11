@@ -43,11 +43,19 @@ java(JavaOpts, MainClass, Args, Output) :-
 
 java_cp(Classpath, MainClass, Args, Output) :- java_cp([], Classpath, MainClass, Args, Output).
 java_cp(JavaOpts, Classpath, MainClass, Args, Output) :-
-    find_main_class(Classpath, MainClass, Class),
+    cache(MainClass,
+        (
+            find_main_class(Classpath, MainClass, Class),
 
-    atom_codes(MainClass, MainClassCodes),
-    atom_codes(Class, ClassCodes),
-    append(_, MainClassCodes, ClassCodes),
+            atom_codes(MainClass, MainClassCodes),
+            atom_codes(Class, ClassCodes),
+            append(_, MainClassCodes, ClassCodes)
+        ), Class), !,
+
+    % Clear out the temp jar files. We only create a temp file so we can get the temp directory
+    tmp_file('basic', TmpFile),
+    file_directory_name(TmpFile, Dir),
+    foreach((walk(Dir, File), sub_atom(File, _, _, _, 'expandedjarfile')), delete_directory_and_contents(File)), !,
 
     run_java(JavaOpts, Classpath, Class, Args, Output).
 
@@ -72,7 +80,7 @@ read_main_class(Path, SubStr, MainClass) :-
     read_main_class_dir(Path, SubStr, MainClass).
 
 read_main_class_jar(Path, SubStr, MainClass) :-
-    tmp_file('jar', Dir),
+    tmp_file('expandedjarfile', Dir),
     make_directory(Dir),
 
     unzip(Path, Dir),
