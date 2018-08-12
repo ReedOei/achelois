@@ -143,7 +143,11 @@ take_while(_, _, []).
 
 take(_, [], []).
 take(0, _, []).
-take(N, [H|T], [H|Rest]) :- N1 #= N - 1, take(N1, T, Rest).
+take(N, [H|T], [H|Rest]) :-
+    N #>= 0,
+    N1 #= N - 1,
+    take(N1, T, Rest),
+    length(Rest, N1).
 
 same_length(A, B, NewA, NewB) :-
     length(A, LenA),
