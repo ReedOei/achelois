@@ -3,7 +3,11 @@
                     read_file/2, write_file/2, list_empty/1,
                     list_files/2, run_process/2, run_process/3, run_process/4,
 				    walk/2, take_while/3, take/3, cache/3, cache_global/3,
-                    invalidate_cache/0, invalidate_cache/1]).
+                    delete_cache/0, delete_cache/1,
+                    base_digits/2, base_conv/4,
+                    chars_of_type/2, numbers/1, letters_lower/1, letters_upper/1, letters/1,
+                    unique/1, unique/2,
+                    seq/2, arith_seq/2, geom_seq/2, increasing/1, to_digits/2, to_digits/3, to_digits/4]).
 
 :- use_module(library(filesex)).
 :- use_module(library(clpfd)).
@@ -15,13 +19,13 @@ factorial(N, F) :-
     F #= N * F1.
 
 % Delete everything
-invalidate_cache :-
+delete_cache :-
     cache_path('Test', AcheloisPath, _),
     exists_directory(AcheloisPath),
     delete_directory_and_contents(AcheloisPath).
 
 % Delete just one part of the cache
-invalidate_cache(BasePath) :-
+delete_cache(BasePath) :-
     cache_path(BasePath, AcheloisPath, Path),
     (
         exists_file(Path),
@@ -139,7 +143,7 @@ take_while(_, _, []).
 
 take(_, [], []).
 take(0, _, []).
-take(N, [H|T], [H|Rest]) :- N1 is N - 1, take(N1, T, Rest).
+take(N, [H|T], [H|Rest]) :- N1 #= N - 1, take(N1, T, Rest).
 
 same_length(A, B, NewA, NewB) :-
     length(A, LenA),
@@ -157,4 +161,86 @@ sublist(SubList, List) :-
 sublist(SubList, List) :-
     nonvar(SubList),
     forall(member(X, SubList), member(X, List)).
+
+chars_of_type(Type, Chars) :-
+    findall(C, char_type(C, Type), Temp),
+    sort(Temp, Chars).
+
+numbers(Numbers) :- chars_of_type(digit, Numbers).
+letters(Letters) :-
+    letters_lower(LowerLetters),
+    letters_upper(UpperLetters),
+    append(LowerLetters, UpperLetters, Letters).
+letters_lower(LowerLetters) :- atom_chars('abcdefghijklmnopqrstuvwxyz', LowerLetters).
+letters_upper(UpperLetters) :- atom_chars('ABCDEFGHIJKLMNOPQRSTUVWXYZ', UpperLetters).
+
+base_digits(Base, BaseDigits) :-
+    numbers(Numbers),
+    letters_lower(LowerLetters),
+    letters_upper(UpperLetters),
+    flatten([Numbers, LowerLetters, UpperLetters], DigitList),
+    take(Base, DigitList, BaseDigits).
+
+from_digits(Base, BaseDigits, Digit, Cur, Out) :-
+    nth0(DigitVal, BaseDigits, Digit),
+    Out #= Base * Cur + DigitVal.
+
+to_digits(N, Digits) :- base_digits(10, Ds), digits(10, Ds, N, Digits).
+to_digits(Base, N, Digits) :-
+    base_digits(Base, BaseDigits),
+    to_digits(Base, BaseDigits, N, Digits).
+to_digits(Base, BaseDigits, N, Digits) :-
+    N #< Base,
+    nth0(N, BaseDigits, NChar),
+    Digits = [NChar];
+
+    N #>= Base,
+    DVal #= N mod Base,
+    NewN #= N div Base,
+
+    to_digits(Base, BaseDigits, NewN, Rest),
+    nth0(DVal, BaseDigits, D),
+    append(Rest, [D], Digits).
+
+base_conv(FromBase, ToBase, N, M) :-
+    base_digits(FromBase, FromDigits),
+
+    (
+        atom(N),
+        atom_chars(N, NAtom);
+
+        not(atom(N)),
+        term_to_atom(N, TempAtom),
+        atom_chars(TempAtom, NAtom)
+    ),
+
+    foldl(from_digits(FromBase, FromDigits), NAtom, 0, Base10),
+
+    to_digits(ToBase, Base10, MAtom),
+    atom_chars(M, MAtom).
+
+unique(L) :- unique(L, L).
+
+unique([], []).
+unique([H|T], [H|Rest]) :-
+    findall(X, (member(X, T), dif(X, H)), Temp),
+    unique(Temp, Rest).
+
+seq(_, []).
+seq(_, [_]).
+seq(Pred, [Start, Next|Rest]) :-
+    call(Pred, Next, Start),
+    seq(Pred, [Next|Rest]).
+
+increasing([]).
+increasing([_]).
+increasing([A,B|Tail]) :-
+    A #=< B,
+    increasing([B|Tail]).
+
+arith_seq_f(Inc, Next, Start) :- Next #= Start + Inc.
+arith_seq(Inc, Seq) :- seq(arith_seq_f(Inc), Seq).
+
+geom_seq_f(M, Next, Start) :- Next #= M * Start.
+geom_seq(M, Seq) :- seq(geom_seq_f(M), Seq).
 
