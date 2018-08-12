@@ -2,7 +2,7 @@
                     read_process/3, read_process/4, read_process/5,
                     read_file/2, write_file/2, list_empty/1,
                     list_files/2, run_process/2, run_process/3, run_process/4,
-				    walk/2, zip/2, take_while/3, take/3, cache/3, cache_global/3,
+				    walk/2, take_while/3, take/3, cache/3, cache_global/3,
                     invalidate_cache/0, invalidate_cache/1]).
 
 :- use_module(library(filesex)).
@@ -88,11 +88,6 @@ intercalate([H|T], Sep, [H, Sep | List]) :- intercalate(T, Sep, List).
 lookup_path(ExeName, Path) :-
     read_process('.', path(which), [ExeName], TempPath),
     atomic_list_concat([Path|_], '\n', TempPath).
-
-zip(Dir, ZipName) :-
-    file_base_name(Dir, DirName),
-    file_name_extension(DirName, 'zip', ZipName),
-    run_process(path(zip), ['-r', ZipName, Dir]).
 
 run_process(Exe, Args) :- run_process('.', Exe, Args).
 run_process(Path, Exe, Args) :- run_process(Path, Exe, Args, _).

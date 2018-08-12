@@ -1,4 +1,7 @@
-:- module(commands, [unzip/2, find_main_class/2, find_main_class/3]).
+:- module(commands, [unzip/2, find_main_class/2, find_main_class/3, zip/2,
+                     java/3, java/4, java/5,
+                     java_cp/4, java_cp/5, java_cp/6,
+                     run_java/4, run_java/5, run_java/6]).
 
 :- use_module(library(dcg/basics)).
 :- use_module(library(filesex)).
@@ -9,10 +12,14 @@
 % - scp
 % - ssh run remote script
 % - ssh run remote command
-% - unzip
 % - ps/related things for killing processes
 %
 % TODO: Move zip command here
+
+zip(Dir, ZipName) :-
+    file_base_name(Dir, DirName),
+    file_name_extension(DirName, 'zip', ZipName),
+    run_process(path(zip), ['-r', ZipName, Dir]).
 
 unzip(ZipFile, Destination) :-
     var(Destination),
@@ -37,12 +44,14 @@ unzip(ZipFile, Destination) :-
     read_process(path(unzip), [ZipFile, '-d', Destination], _).
 
 java(MainClass, Args, Output) :- java([], MainClass, Args, Output).
-java(JavaOpts, MainClass, Args, Output) :-
-    quick_classpath('.', Classpath),
-    java_cp(JavaOpts, Classpath, MainClass, Args, Output).
+java(JavaOpts, MainClass, Args, Output) :- java('.', JavaOpts, MainClass, Args, Output).
+java(Path, JavaOpts, MainClass, Args, Output) :-
+    quick_classpath(Path, Classpath),
+    java_cp(Path, JavaOpts, Classpath, MainClass, Args, Output).
 
 java_cp(Classpath, MainClass, Args, Output) :- java_cp([], Classpath, MainClass, Args, Output).
-java_cp(JavaOpts, Classpath, MainClass, Args, Output) :-
+java_cp(JavaOpts, Classpath, MainClass, Args, Output) :- java_cp('.', JavaOpts, Classpath, MainClass, Args, Output).
+java_cp(Path, JavaOpts, Classpath, MainClass, Args, Output) :-
     cache(MainClass,
         (
             find_main_class(Classpath, MainClass, Class),
@@ -57,13 +66,14 @@ java_cp(JavaOpts, Classpath, MainClass, Args, Output) :-
     file_directory_name(TmpFile, Dir),
     foreach((walk(Dir, File), sub_atom(File, _, _, _, 'expandedjarfile')), delete_directory_and_contents(File)), !,
 
-    run_java(JavaOpts, Classpath, Class, Args, Output).
+    run_java(Path, JavaOpts, Classpath, Class, Args, Output).
 
 run_java(Classpath, MainClass, Args, Output) :- run_java([], Classpath, MainClass, Args, Output).
-run_java(JavaOpts, Classpath, MainClass, Args, Output) :-
+run_java(JavaOpts, Classpath, MainClass, Args, Output) :- run_java('.', JavaOpts, Classpath, MainClass, Args, Output).
+run_java(Path, JavaOpts, Classpath, MainClass, Args, Output) :-
     append(JavaOpts, ['-cp', Classpath, MainClass], TempArgs),
     append(TempArgs, Args, AllArgs),
-    read_process(path(java), AllArgs, Output).
+    read_process(Path, path(java), AllArgs, Output).
 
 find_main_class(Classpath, MainClass) :- find_main_class(Classpath, '', MainClass).
 find_main_class(Classpath, SubStr, MainClass) :-

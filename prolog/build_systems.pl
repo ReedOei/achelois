@@ -8,7 +8,6 @@
 
 % TODO: keep track of failing builds, make the compile output something other than compile-output (mkae it goal dependent)
 %       then we can use it to cache the results of doing a build
-% Get classpath for build system/project
 
 build_system(maven).
 build_system(ant).
