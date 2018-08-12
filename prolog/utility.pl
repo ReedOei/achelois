@@ -4,7 +4,7 @@
                     list_files/2, run_process/2, run_process/3, run_process/4,
 				    walk/2, take_while/3, take/3, cache/3, cache_global/3,
                     delete_cache/0, delete_cache/1,
-                    base_digits/2, base_conv/4,
+                    base_digits/2, base_conv/4, to_base_10/3,
                     chars_of_type/2, numbers/1, letters_lower/1, letters_upper/1, letters/1,
                     unique/1, unique/2,
                     seq/2, arith_seq/2, geom_seq/2, increasing/1, to_digits/2, to_digits/3, to_digits/4]).
@@ -201,6 +201,10 @@ to_digits(Base, BaseDigits, N, Digits) :-
     to_digits(Base, BaseDigits, NewN, Rest),
     nth0(DVal, BaseDigits, D),
     append(Rest, [D], Digits).
+
+to_base_10(FromBase, N, M) :-
+    base_conv(FromBase, 10, N, TempM),
+    term_to_atom(M, TempM).
 
 base_conv(FromBase, ToBase, N, M) :-
     base_digits(FromBase, FromDigits),
