@@ -29,8 +29,26 @@ proc_time(Time, Process) :- lookup_process(Process, 9, Time).
 cmd(Cmd, Process) :- lookup_process(Process, 10, Cmd).
 
 process_parent(ProcessA, ProcessB) :-
-    functor(ProcessA, process, _),
-    functor(ProcessB, process, _),
+    nonvar(ProcessA), nonvar(ProcessB),
+    ppid(PID, ProcessA),
+    pid(PID, ProcessB).
+process_parent(ProcessA, ProcessB) :-
+    var(ProcessA), nonvar(ProcessB),
+    pid(PID, ProcessB),
+    processes(Processes),
+    member(ProcessA, Processes),
+    ppid(PID, ProcessA).
+process_parent(ProcessA, ProcessB) :-
+    nonvar(ProcessA), var(ProcessB),
+    ppid(PID, ProcessA),
+    processes(Processes),
+    member(ProcessB, Processes),
+    pid(PID, ProcessB).
+process_parent(ProcessA, ProcessB) :-
+    var(ProcessA), var(ProcessB),
+    processes(Processes),
+    member(ProcessA, Processes),
+    member(ProcessB, Processes),
     ppid(PID, ProcessA),
     pid(PID, ProcessB).
 
