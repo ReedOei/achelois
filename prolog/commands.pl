@@ -14,6 +14,12 @@
 % - ps/related things for killing processes
 
 lookup_process(Process, N, Val) :-
+    var(Process),
+    processes(Processes),
+    member(Process, Processes),
+    lookup_process(Process, N, Val).
+lookup_process(Process, N, Val) :-
+    nonvar(Process),
     functor(Process, process, _),
     arg(N, Process, Val).
 
@@ -49,8 +55,7 @@ process_parent(ProcessA, ProcessB) :-
     processes(Processes),
     member(ProcessA, Processes),
     member(ProcessB, Processes),
-    ppid(PID, ProcessA),
-    pid(PID, ProcessB).
+    process_parent(ProcessA, ProcessB).
 
 processes(Processes) :-
     read_process(path(ps), ['-ejf'], Output),
