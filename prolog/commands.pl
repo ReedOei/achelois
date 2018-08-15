@@ -9,10 +9,47 @@
 :- use_module(utility).
 
 % TODO: Add commands for:
-% - scp
-% - ssh run remote script
-% - ssh run remote command
 % - ps/related things for killing processes
+
+uri_port_arg(Uri, PortFlag, Args) :-
+    atomic_list_concat([UriNoPort, Port], ':', Uri) -> Args = [PortFlag, Port, UriNoPort];
+    Args = [Uri].
+
+% Note that SSH/SCP commands assume that you have the connection set up
+% so you don't need to enter your password manually.
+remote_command(Uri, Command, Output) :-
+    uri_port_arg(Uri, '-p', Args),
+    append(Args, [Command], AllArgs),
+    read_process(path(ssh), AllArgs, Output).
+
+% Can either pass in a list of files or just one
+% If you don't specify the copy path, it will just be the directory you enter by default when you ssh in
+scp(Paths, Uri) :- scp(Paths, Uri, _). % Note that this can take either a single file or a list of files.
+scp(Path, Uri, CopyPath) :-
+    not(is_list(Path)),
+    scp([Path], Uri, CopyPath).
+scp(Paths, Uri, CopyPath) :-
+    is_list(Paths),
+    var(CopyPath),
+    remote_command(Uri, 'pwd', Temp),
+    atom_concat(CopyPath, '\n', Temp), % pwd prints out a newline, so get rid of that
+    scp(Paths, Uri, CopyPath).
+scp(Paths, Uri, CopyPath) :-
+    is_list(Paths),
+    nonvar(CopyPath),
+
+    % If we're passed something like user@host:port
+    % then TempUriArgs = ['-P', port, 'user@host']
+    % Then we separate out the port arguments from the last argument, which the gets combined with the destination path
+    uri_port_arg(Uri, '-P', TempUriArgs),
+    last(TempUriArgs, ActualUri),
+    append(PortArgs, [ActualUri], TempUriArgs),
+    atomic_list_concat([ActualUri, CopyPath], ':', UriArg),
+
+    % Use -r because it doesn't affect regular files but it will automatically fully copy directories
+    % which is probably what the user wants to do since they passed in a directory
+    flatten([['-r'], PortArgs, Paths, [UriArg]], AllArgs),
+    run_process(path(scp), AllArgs).
 
 zip(Dir, ZipName) :-
     file_base_name(Dir, DirName),

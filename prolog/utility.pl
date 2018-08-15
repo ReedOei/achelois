@@ -103,17 +103,24 @@ lookup_path(ExeName, Path) :-
 run_process(Exe, Args) :- run_process('.', Exe, Args).
 run_process(Path, Exe, Args) :- run_process(Path, Exe, Args, _).
 run_process(Path, Exe, Args, ExitCode) :-
-    process_create(Exe, Args, [cwd(Path), process(PID), detached(true)]),
-    process_wait(PID, exit(ExitCode)).
+    setup_call_cleanup(
+        process_create(Exe, Args, [cwd(Path), process(PID), detached(true)]),
+        true,
+        process_wait(PID, exit(ExitCode))).
 
 read_process(Exe, Args, Output) :- read_process('.', Exe, Args, Output).
 read_process(Path, Exe, Args, Output) :- read_process(Path, Exe, Args, Output, _).
 read_process(Path, Exe, Args, Output, ExitCode) :-
-    process_create(Exe, Args, [stdout(pipe(OutputStream)), stderr(pipe(OutputStream)), cwd(Path), process(PID), detached(true)]),
-    read_string(OutputStream, _, OutputStr),
-    atom_string(Output, OutputStr),
-    process_wait(PID, exit(ExitCode)),
-    close(OutputStream).
+    setup_call_cleanup(
+        process_create(Exe, Args, [stdout(pipe(OutputStream)), stderr(pipe(OutputStream)), cwd(Path), process(PID), detached(true)]),
+    (
+        read_string(OutputStream, _, OutputStr),
+        atom_string(Output, OutputStr)
+    ),
+    (
+        process_wait(PID, exit(ExitCode)),
+        close(OutputStream)
+    )).
 
 read_file(Path, Contents) :-
     setup_call_cleanup(
