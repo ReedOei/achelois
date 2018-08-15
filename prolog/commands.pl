@@ -13,8 +13,6 @@
 % - ssh run remote script
 % - ssh run remote command
 % - ps/related things for killing processes
-%
-% TODO: Move zip command here
 
 zip(Dir, ZipName) :-
     file_base_name(Dir, DirName),

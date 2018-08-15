@@ -1,8 +1,8 @@
 :- module(utility, [string_concat_list/2, intercalate/3, lookup_path/2,
                     read_process/3, read_process/4, read_process/5,
-                    read_file/2, write_file/2, list_empty/1,
+                    read_file/2, read_file_lines/2, write_file/2, list_empty/1,
                     list_files/2, run_process/2, run_process/3, run_process/4,
-				    walk/2, take_while/3, take/3, cache/3, cache_global/3,
+				    walk/2, take_while/3, take/3, cache/3, cache_global/3, nth_parent_dir/3,
                     delete_cache/0, delete_cache/1,
                     base_digits/2, base_conv/4, to_base_10/3,
                     chars_of_type/2, numbers/1, letters_lower/1, letters_upper/1, letters/1,
@@ -11,6 +11,13 @@
 
 :- use_module(library(filesex)).
 :- use_module(library(clpfd)).
+
+nth_parent_dir(0, Path, Path).
+nth_parent_dir(N, Path, Parent) :-
+    absolute_file_name(Path, AbsPath),
+    file_directory_name(AbsPath, TempParent),
+    N1 #= N - 1,
+    nth_parent_dir(N1, TempParent, Parent).
 
 factorial(0, 1).
 factorial(N, F) :-
@@ -108,12 +115,18 @@ read_process(Path, Exe, Args, Output, ExitCode) :-
     process_wait(PID, exit(ExitCode)),
     close(OutputStream).
 
-read_file(Path, Lines) :-
-    open(Path, read, Stream),
-    read_string(Stream, _, String),
-    atom_string(Atom, String),
-    atomic_list_concat(Lines, '\n', Atom),
-    close(Stream).
+read_file(Path, Contents) :-
+    setup_call_cleanup(
+        open(Path, read, Stream),
+        (
+            read_string(Stream, _, String),
+            atom_string(Contents, String)
+        ),
+        close(Stream)).
+
+read_file_lines(Path, Lines) :-
+    read_file(Path, Atom),
+    atomic_list_concat(Lines, '\n', Atom).
 
 write_file(OutputPath, Str) :-
     open(OutputPath, write, Stream),
