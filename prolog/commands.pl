@@ -1,4 +1,6 @@
-:- module(commands, [unzip/2, find_main_class/2, find_main_class/3, zip/2,
+:- module(commands, [unzip/2, zip/2,
+                     user/2, pid/2, pgid/2, sid/2, ppid/2, proc_c/2, stime/2, tty/2, proc_time/2, cmd/2, process_parent/2, processes/1,
+                     find_main_class/2, find_main_class/3,
                      java/3, java/4, java/5,
                      java_cp/4, java_cp/5, java_cp/6,
                      run_java/4, run_java/5, run_java/6]).
@@ -10,6 +12,39 @@
 
 % TODO: Add commands for:
 % - ps/related things for killing processes
+
+lookup_process(Process, N, Val) :-
+    functor(Process, process, _),
+    arg(N, Process, Val).
+
+user(User, Process) :- lookup_process(Process, 1, User).
+pid(PID, Process) :- lookup_process(Process, 2, PID).
+ppid(PPID, Process) :- lookup_process(Process, 3, PPID).
+pgid(PGID, Process) :- lookup_process(Process, 4, PGID).
+sid(SID, Process) :- lookup_process(Process, 5, SID).
+proc_c(C, Process) :- lookup_process(Process, 6, C).
+stime(STime, Process) :- lookup_process(Process, 7, STime).
+tty(TTY, Process) :- lookup_process(Process, 8, TTY).
+proc_time(Time, Process) :- lookup_process(Process, 9, Time).
+cmd(Cmd, Process) :- lookup_process(Process, 10, Cmd).
+
+process_parent(ProcessA, ProcessB) :-
+    functor(ProcessA, process, _),
+    functor(ProcessB, process, _),
+    ppid(PID, ProcessA),
+    pid(PID, ProcessB).
+
+processes(Processes) :-
+    read_process(path(ps), ['-ef'], Output),
+    atomic_list_concat(Lines, '\n', Output),
+    findall(process(User, PID, PPID, PGID, SID, C, STime, TTY, Time, Cmd),
+        (
+            member(Line, Lines),
+            atomic_list_concat(RawCols, ' ', Line),
+            exclude(=(''), RawCols, [User, TempPID, TempPPID, TempPGID, TempSID, TempC, STime, TTY, Time|Cmd]),
+            maplist(term_to_atom, [PID, PPID, PGID, SID, C], [TempPID, TempPPID, TempPGID, TempSID, TempC])
+        ),
+        [_|Processes]). % Exclude the first one, it's the header column
 
 uri_port_arg(Uri, PortFlag, Args) :-
     atomic_list_concat([UriNoPort, Port], ':', Uri) -> Args = [PortFlag, Port, UriNoPort];
