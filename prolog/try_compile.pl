@@ -39,13 +39,22 @@ files_exist(Path, System, Goal) :-
 run_compile(Path, System, Goal, CustomArgs, Output) :-
     % Retrieve information about the build system so we can actually run it.
     exe_name(System, SystemPath),
-    goal_name(System, Goal, GoalName),
+    goal_name(System, Goal, GoalArgs),
 
-    extra_args(System, Goal, ExtraArgs),
-    append([GoalName], ExtraArgs, Args),
-    append(Args, CustomArgs, AllArgs),
-    read_process(Path, SystemPath, AllArgs, Output),
+    output_file(Path, System, Goal, CustomArgs, OutputPath),
 
-    directory_file_path(Path, 'compile-output.txt', OutputPath),
-    write_file(OutputPath, Output).
+    (
+        not(exists_file(OutputPath)) ->
+            append(GoalArgs, CustomArgs, AllArgs),
+            read_process(Path, SystemPath, AllArgs, Output),
+            write_file(OutputPath, Output);
+
+        read_file(OutputPath, Output)
+    ).
+
+output_file(Path, System, Goal, CustomArgs, OutputPath) :-
+    atomic_list_concat(QuotedArgs, '-', ArgsPart),
+    atomic_list_concat(['output', System, Goal, ArgsPart], '-', TempFilename),
+    file_name_extension(TempFilename, 'txt', Filename),
+    directory_file_path(Path, TempFilename, OutputPath).
 

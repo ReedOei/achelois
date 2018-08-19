@@ -7,6 +7,8 @@
                     base_digits/2, base_conv/4, to_base_10/3,
                     chars_of_type/2, numbers/1, letters_lower/1, letters_upper/1, letters/1,
                     unique/1, unique/2,
+                    sublist/2,
+                    gcd/3, first_numbers/2, first_numbers/3, sumf/2, averagef/2,
                     seq/2, arith_seq/2, geom_seq/2, increasing/1, to_digits/2, to_digits/3, to_digits/4]).
 
 :- use_module(library(filesex)).
@@ -271,4 +273,31 @@ arith_seq(Inc, Seq) :- seq(arith_seq_f(Inc), Seq).
 
 geom_seq_f(M, Next, Start) :- Next #= M * Start.
 geom_seq(M, Seq) :- seq(geom_seq_f(M), Seq).
+
+first_numbers(_, _, []).
+first_numbers(Property, X, [X|T]) :-
+    call(Property, X),
+    Next #= X + 1,
+    first_numbers(Property, Next, T).
+first_numbers(Property, X, T) :-
+    not(call(Property, X)),
+    Next #= X + 1,
+    first_numbers(Property, Next, T).
+
+first_numbers(Property, Numbers) :- first_numbers(Property, 0, Numbers).
+
+gcd(A, 0, A).
+gcd(A, B, G) :-
+    NewB #= A mod B,
+    gcd(B, NewB, G).
+
+sumf([], 0.0).
+sumf([H|T], S) :-
+    sumf(T, SumT),
+    S is SumT + H.
+
+averagef(Values, Average) :-
+    sumf(Values, Sum),
+    length(Values, L),
+    Average is Sum / float(L).
 
