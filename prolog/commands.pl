@@ -2,9 +2,7 @@
                      user/2, pid/2, pgid/2, sid/2, ppid/2, proc_c/2, stime/2, tty/2, proc_time/2, cmd/2, process_parent/2, processes/1,
                      remote_pwd/2, remote_absolute_path/3,
                      find_main_class/2, find_main_class/3,
-                     java/3, java/4, java/5,
-                     java_cp/4, java_cp/5, java_cp/6,
-                     run_java/4, run_java/5, run_java/6]).
+                     java/2, java/3, java_cp/4, run_java/4]).
 
 :- use_module(library(dcg/basics)).
 :- use_module(library(filesex)).
@@ -92,7 +90,7 @@ remote_absolute_path(Uri, RelPath, AbsPath) :-
     nonvar(RelPath),
 
     (
-        atom_concat('/', _, CopyPath) -> AbsPath = RelPath;
+        atom_concat('/', _, RelPath) -> AbsPath = RelPath;
 
         % If it's not an absolute path, make it absolute by assuming it's relative to the pwd when you ssh in
         remote_pwd(Uri, Pwd),
@@ -157,15 +155,13 @@ unzip(ZipFile, Destination) :-
     nonvar(Destination),
     read_process(path(unzip), [ZipFile, '-d', Destination], _).
 
-java(MainClass, Args, Output) :- java([], MainClass, Args, Output).
-java(JavaOpts, MainClass, Args, Output) :- java('.', JavaOpts, MainClass, Args, Output).
-java(Path, JavaOpts, MainClass, Args, Output) :-
+java(MainClass, Args) :- java(MainClass, Args, []).
+java(MainClass, Args, Options) :-
+    process_options(Options, Path, _),
     quick_classpath(Path, Classpath),
-    java_cp(Path, JavaOpts, Classpath, MainClass, Args, Output).
+    java_cp(Classpath, MainClass, Args, Options).
 
-java_cp(Classpath, MainClass, Args, Output) :- java_cp([], Classpath, MainClass, Args, Output).
-java_cp(JavaOpts, Classpath, MainClass, Args, Output) :- java_cp('.', JavaOpts, Classpath, MainClass, Args, Output).
-java_cp(Path, JavaOpts, Classpath, MainClass, Args, Output) :-
+java_cp(Classpath, MainClass, Args, Options) :-
     cache(MainClass,
         (
             find_main_class(Classpath, MainClass, Class),
@@ -180,14 +176,55 @@ java_cp(Path, JavaOpts, Classpath, MainClass, Args, Output) :-
     file_directory_name(TmpFile, Dir),
     foreach((walk(Dir, File), sub_atom(File, _, _, _, 'expandedjarfile')), delete_directory_and_contents(File)), !,
 
-    run_java(Path, JavaOpts, Classpath, Class, Args, Output).
+    run_java(Classpath, Class, Args, Options).
 
-run_java(Classpath, MainClass, Args, Output) :- run_java([], Classpath, MainClass, Args, Output).
-run_java(JavaOpts, Classpath, MainClass, Args, Output) :- run_java('.', JavaOpts, Classpath, MainClass, Args, Output).
-run_java(Path, JavaOpts, Classpath, MainClass, Args, Output) :-
+run_java(Classpath, MainClass, InArgs, Options) :-
+    make_args(InArgs, Args),
+
+    process_options(Options, Path, JavaOpts),
+
     append(JavaOpts, ['-cp', Classpath, MainClass], TempArgs),
     append(TempArgs, Args, AllArgs),
-    read_process(Path, path(java), AllArgs, Output).
+
+    (
+        % TODO: Figure out how to pass java options when using mvn exec plugin
+        builds_with(maven, Path), JavaOpts = [] -> mvn_exec(MainClass, Args, Options);
+
+        process(path(java), AllArgs, Options)
+    ).
+
+process_options(Options, Path, JavaOpts) :-
+    (
+        member(path(Path), Options);
+        Path = '.'
+    ),
+
+    findall(JavaOpt, member(java_opt(JavaOpt), Options), JavaOpts).
+
+make_args(Args, ActualArgs) :-
+    maplist(make_arg, Args, Temp),
+    flatten(Temp, ActualArgs).
+make_arg(ArgName=ArgValue, [Result]) :-
+    % If the arg name already starts with a '-', don't change it
+    not(atom_concat('-', ArgName)) ->
+        (
+            atom_chars(ArgName, [_]) ->
+                atomic_list_concat(['-', ArgName, '=', ArgValue], '', Result);
+            atomic_list_concat(['--', ArgName, '=', ArgValue], '', Result)
+        );
+    atomic_list_concat([ArgName, '=', ArgValue], Result).
+make_arg(ArgName-ArgValue, [ActualArgName, ArgValue]) :-
+    atom_chars(ArgName, [_]) -> atom_concat('-', ArgName, ActualArgName);
+
+    atom_concat('--', ArgName, ActualArgName).
+
+mvn_exec(MainClass, Args, Options) :-
+    atom_concat('-Dexec.mainClass=', MainClass, MainClassArg),
+    maplist(surround_atom('\'', '\''), Args, QuotedArgs),
+    atomic_list_concat(QuotedArgs, ' ', ArgStr),
+    atom_concat('-Dexec.args=', ArgStr, MavenArgs),
+
+    process(path(mvn), ['package', '-DskipTests', 'exec:java', MainClassArg, MavenArgs], Options).
 
 find_main_class(Classpath, MainClass) :- find_main_class(Classpath, '', MainClass).
 find_main_class(Classpath, SubStr, MainClass) :-
