@@ -1,5 +1,6 @@
 :- module(commands, [unzip/2, zip/2,
                      user/2, pid/2, pgid/2, sid/2, ppid/2, proc_c/2, stime/2, tty/2, proc_time/2, cmd/2, process_parent/2, processes/1,
+                     remote_pwd/2, remote_absolute_path/3,
                      find_main_class/2, find_main_class/3,
                      java/3, java/4, java/5,
                      java_cp/4, java_cp/5, java_cp/6,
@@ -9,9 +10,6 @@
 :- use_module(library(filesex)).
 
 :- use_module(utility).
-
-% TODO: Add commands for:
-% - ps/related things for killing processes
 
 lookup_process(Process, N, Val) :-
     var(Process),
@@ -80,6 +78,27 @@ remote_command(Uri, Command, Output) :-
     append(Args, [Command], AllArgs),
     read_process(path(ssh), AllArgs, Output).
 
+remote_pwd(Uri, Pwd) :-
+    remote_command(Uri, 'pwd', Temp),
+    atom_concat(Pwd, '\n', Temp). % pwd prints out a newline, so get rid of that
+
+remote_absolute_path(Uri, RelPath, AbsPath) :-
+    var(RelPath),
+    nonvar(AbsPath),
+    remote_pwd(Uri, Pwd),
+    directory_file_path(Pwd, RelPath, AbsPath).
+
+remote_absolute_path(Uri, RelPath, AbsPath) :-
+    nonvar(RelPath),
+
+    (
+        atom_concat('/', _, CopyPath) -> AbsPath = RelPath;
+
+        % If it's not an absolute path, make it absolute by assuming it's relative to the pwd when you ssh in
+        remote_pwd(Uri, Pwd),
+        directory_file_path(Pwd, RelPath, AbsPath)
+    ).
+
 % Can either pass in a list of files or just one
 % If you don't specify the copy path, it will just be the directory you enter by default when you ssh in
 scp(Paths, Uri) :- scp(Paths, Uri, _). % Note that this can take either a single file or a list of files.
@@ -92,9 +111,11 @@ scp(Paths, Uri, CopyPath) :-
     remote_command(Uri, 'pwd', Temp),
     atom_concat(CopyPath, '\n', Temp), % pwd prints out a newline, so get rid of that
     scp(Paths, Uri, CopyPath).
-scp(Paths, Uri, CopyPath) :-
+scp(Paths, Uri, InPath) :-
     is_list(Paths),
-    nonvar(CopyPath),
+    nonvar(InPath),
+
+    remote_absolute_path(Uri, InPath, CopyPath),
 
     % If we're passed something like user@host:port
     % then TempUriArgs = ['-P', port, 'user@host']
