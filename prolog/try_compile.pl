@@ -53,8 +53,9 @@ run_compile(Path, System, Goal, CustomArgs, Output) :-
     ).
 
 output_file(Path, System, Goal, CustomArgs, OutputPath) :-
+    maplist(surround_atom('\'', '\''), CustomArgs, QuotedArgs),
     atomic_list_concat(QuotedArgs, '-', ArgsPart),
     atomic_list_concat(['output', System, Goal, ArgsPart], '-', TempFilename),
     file_name_extension(TempFilename, 'txt', Filename),
-    directory_file_path(Path, TempFilename, OutputPath).
+    directory_file_path(Path, Filename, OutputPath).
 

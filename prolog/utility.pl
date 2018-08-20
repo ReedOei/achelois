@@ -8,11 +8,23 @@
                     chars_of_type/2, numbers/1, letters_lower/1, letters_upper/1, letters/1,
                     unique/1, unique/2,
                     sublist/2,
-                    gcd/3, first_numbers/2, first_numbers/3, sumf/2, averagef/2,
+                    surround_atom/4,
+                    lcm/3, gcd/3, first_numbers/2, first_numbers/3, sumf/2, averagef/2,
                     seq/2, arith_seq/2, geom_seq/2, increasing/1, to_digits/2, to_digits/3, to_digits/4]).
 
 :- use_module(library(filesex)).
 :- use_module(library(clpfd)).
+
+surround_atom(Left, Right, A, B) :-
+    nonvar(B),
+    atom_concat(LeftPart, RightPart, B),
+    atom_concat(Left, ALeft, LeftPart),
+    atom_concat(ARight, Right, RightPart),
+    atom_concat(ALeft, ARight, A).
+surround_atom(Left, Right, A, B) :-
+    nonvar(Left), nonvar(Right), nonvar(A),
+    atom_concat(Left, A, Temp),
+    atom_concat(Temp, Right, B).
 
 nth_parent_dir(0, Path, Path).
 nth_parent_dir(N, Path, Parent) :-
@@ -285,6 +297,10 @@ first_numbers(Property, X, T) :-
     first_numbers(Property, Next, T).
 
 first_numbers(Property, Numbers) :- first_numbers(Property, 0, Numbers).
+
+lcm(A, B, L) :-
+    gcd(A, B, G),
+    L * G #= A * B.
 
 gcd(A, 0, A).
 gcd(A, B, G) :-
