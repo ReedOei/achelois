@@ -1,19 +1,131 @@
 :- module(utility, [string_concat_list/2, intercalate/3, lookup_path/2,
-                    process/2, process/3, read_process/3, read_process/4, read_process/5,
+                    process/2, process/3,
                     read_file/2, read_file_lines/2, write_file/2, list_empty/1,
                     list_files/2, run_process/2, run_process/3, run_process/4,
 				    walk/2, take_while/3, take/3, cache/3, cache_global/3, nth_parent_dir/3,
+                    drop/3, split/4,
                     delete_cache/0, delete_cache/1,
                     base_digits/2, base_conv/4, to_base_10/3,
                     chars_of_type/2, numbers/1, letters_lower/1, letters_upper/1, letters/1,
                     unique/1, unique/2,
                     sublist/2,
                     surround_atom/4,
+                    parse/2,
+                    call_if_var/2,
+                    line/2, next_matching/2,
+                    file_format/2,
+                    range/3,
+                    partition/2, selectN/4, group/3,
+                    call_or_inverse/2, apply_each/2,
+                    pad_begin/4, pad_end/4, repeated/2,
                     lcm/3, gcd/3, first_numbers/2, first_numbers/3, sumf/2, averagef/2,
-                    seq/2, arith_seq/2, geom_seq/2, increasing/1, to_digits/2, to_digits/3, to_digits/4]).
+                    seq/2, arith_seq/2, geom_seq/2, increasing/1, to_digits/2, to_digits/3, to_digits/4,
+                    from_digits/2, from_digits/4, from_digits/5]).
 
 :- use_module(library(filesex)).
 :- use_module(library(clpfd)).
+
+:- use_module(term_util).
+
+repeated(_, []).
+repeated(X, [X|Xs]) :- repeated(X, Xs).
+
+pad_begin(N, E, Xs, NewXs) :-
+    length(Xs, L), L #=< N ->
+        Dif #= N - L,
+        length(Padding, Dif),
+        repeated(E, Padding),
+        append(Padding, Xs, NewXs);
+    Xs = NewXs.
+
+pad_end(N, E, Xs, NewXs) :-
+    length(Xs, L), L #=< N ->
+        Dif #= N - L,
+        length(Padding, Dif),
+        repeated(E, Padding),
+        append(Xs, Padding, NewXs);
+    Xs = NewXs.
+
+selectN(0, [], List, List).
+selectN(N, [X|Xs], List, NewList) :-
+    N #> 0,
+    select(X, List, Temp),
+
+    N1 #= N - 1,
+    selectN(N1, Xs, Temp, NewList).
+
+partition([], []).
+partition(List, [Partition|Partitions]) :-
+    length(List, L),
+    between(1, L, N),
+    selectN(N, Partition, List, NewList),
+    partition(NewList, Partitions).
+
+group(_, [], []).
+group(N, List, []) :-
+    length(List, L),
+    L #< N.
+group(N, List, [Group|Groups]) :-
+    length(Group, N),
+    append(Group, NewList, List),
+    group(N, NewList, Groups).
+
+drop(0, Xs, Xs).
+drop(N, [_|Xs], Rest) :-
+    N #> 0,
+    N1 #= N - 1,
+    drop(N1, Xs, Rest).
+
+split(0, Xs, [], Xs).
+split(N, [X|Xs], [X|Taken], Dropped) :-
+    N #> 0,
+    N1 #= N - 1,
+    split(N1, Xs, Taken, Dropped).
+
+apply_each(_Pred, []).
+apply_each(Pred, [H|T]) :- call(Pred, H), apply_each(Pred, T).
+
+% If V is a var, then call Expr, otherwise, reverse the order of the operations in Expr, then call it
+call_or_inverse(V, Expr) :-
+    call(V) -> call(Expr);
+
+    Expr =.. [',' | _] ->
+        reverse_conjunction(Expr, Reversed),
+        call(Reversed);
+
+    call(Expr).
+
+range(A, B, Ns) :- findall(N, between(A, B, N), Ns).
+
+% By default the format is the same as the extension, but all lowercase.
+% Can be extended with your specific case if necessary.
+file_format(Path, Format) :-
+    file_name_extension(_, Ext, Path),
+    downcase_atom(Ext, Format).
+
+line(Line, Stream) :-
+    read_line_to_codes(Stream, Codes),
+    atom_codes(Line, Codes);
+
+    line(Line, Stream).
+
+call_if_var(Pred, V) :-
+    var(V) -> call(Pred);
+    true.
+
+next_matching(Phrase, Stream) :-
+    line(Line, Stream),
+    parse(Phrase, Line) -> true;
+
+    next_matching(Phrase, Stream).
+
+parse(Phrase, A) :-
+    atom_codes(A, Codes),
+    phrase(Phrase, Codes).
+
+count_atom(Atom, Search, C) :-
+    atomic_list_concat(Split, Search, Atom),
+    length(Split, C).
 
 surround_atom(Left, Right, A, B) :-
     nonvar(B),
@@ -127,10 +239,25 @@ process(Exe, Args, Options) :-
     ),
 
     (
+        member(stream(Stream), Options) -> process_stream(Stream, Exe, Args, Options);
+
         member(output(Output), Options) -> read_process(Path, Exe, Args, Output, ExitCode);
 
         run_process(Path, Exe, Args, ExitCode)
     ).
+
+process_stream(Stream, Exe, Args, Options) :-
+    (
+        member(path(Path), Options);
+        Path = '.'
+    ),
+
+    (
+        member(pid(PID), Options);
+        true
+    ),
+
+    process_create(Exe, Args, [cwd(Path), stdout(pipe(Stream)), stderr(pipe(Stream)), process(PID), detached(true)]).
 
 run_process(Exe, Args) :- run_process('.', Exe, Args).
 run_process(Path, Exe, Args) :- run_process(Path, Exe, Args, _).
@@ -201,12 +328,6 @@ take(N, [H|T], [H|Rest]) :-
     take(N1, T, Rest),
     length(Rest, N1).
 
-same_length(A, B, NewA, NewB) :-
-    length(A, LenA),
-    length(B, LenB),
-    take(LenB, A, NewA),
-    take(LenA, B, NewB).
-
 sublist([], _).
 sublist(SubList, List) :-
     var(SubList),
@@ -237,6 +358,11 @@ base_digits(Base, BaseDigits) :-
     flatten([Numbers, LowerLetters, UpperLetters], DigitList),
     take(Base, DigitList, BaseDigits).
 
+from_digits(NumDigits, Out) :-
+    base_digits(10, FromDigits),
+    from_digits(10, FromDigits, NumDigits, Out).
+from_digits(FromBase, FromDigits, NumDigits, Out) :-
+    foldl(from_digits(FromBase, FromDigits), NumDigits, 0, Out).
 from_digits(Base, BaseDigits, Digit, Cur, Out) :-
     nth0(DigitVal, BaseDigits, Digit),
     Out #= Base * Cur + DigitVal.
@@ -274,7 +400,7 @@ base_conv(FromBase, ToBase, N, M) :-
         atom_chars(TempAtom, NAtom)
     ),
 
-    foldl(from_digits(FromBase, FromDigits), NAtom, 0, Base10),
+    from_digits(FromBase, FromDigits, NAtom, Base10),
 
     to_digits(ToBase, Base10, MAtom),
     atom_chars(M, MAtom).
