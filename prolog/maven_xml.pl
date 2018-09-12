@@ -27,6 +27,7 @@ dependencies(Artifact, Dependencies) :-
     Artifact =.. [_, _, _, Dependencies, _].
 
 artifact_element(Artifact, Element) :-
+    writeln(Artifact),
     (
         nonvar(Artifact) -> Artifact =.. [ArtifactType, GroupId:ArtifactId:Version, Configuration, Dependencies, Element];
 
@@ -58,7 +59,7 @@ artifact_element(Artifact, Element) :-
     % Dependencies
     (
         not(Dependencies = []), member(element(dependencies, [], DependencyElements), Tags) ->
-            maplist(artifact_element, DependencyElements, Dependencies);
+            maplist(artifact_element, Dependencies, DependencyElements);
 
         Dependencies = []
     ),
