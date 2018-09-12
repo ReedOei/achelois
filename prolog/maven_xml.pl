@@ -1,24 +1,73 @@
-:- module(maven_xml, []).
+:- module(maven_xml, [pom/2, add_artifact/4, artifacts/3]).
 
 :- use_module(library(sgml)).
+:- use_module(library(sgml_write)).
 :- use_module(xml).
 
-load_pom(File, Pom) :- load_xml(File, Pom, []).
+pom(File, Pom) :-
+    var(Pom) -> load_xml(File, Pom, []);
 
-modify_pom.
-backup_pom.
-write_pom.
+    setup_call_cleanup(
+        open(File, write, Stream),
+        xml_write(Stream, Pom, []),
+        close(Stream)).
 
-add_plugin.
-add_dependency.
+config_option(element(Name, [], [V]), Name=V).
 
-modify_plugin.
-modify_dependency.
+artifact_type(Artifact, ArtifactType) :-
+    Artifact =.. [ArtifactType, _,  _, _, _].
 
-configure_plugin.
-configure_dependency.
+coords(Artifact, Coords) :-
+    Artifact =.. [_, Coords, _, _, _].
 
-% Allow specifying section
-modify_element.
-add_element.
+configuration(Artifact, Configuration) :-
+    Artifact =.. [_, _, Configuration, _, _].
+
+dependencies(Artifact, Dependencies) :-
+    Artifact =.. [_, _, _, Dependencies, _].
+
+artifact_element(Artifact, Element) :-
+    Artifact =.. [ArtifactType, GroupId:ArtifactId:Version, Configuration, Dependencies, Element],
+
+    Element = element(ArtifactType, [], Tags),
+
+    member(element(groupId, [], [GroupId]), Tags),
+    member(element(artifactId, [], [ArtifactId]), Tags),
+
+    % The following are optionally part of the artifact
+
+    % Version
+    (
+        not(Version = ''), member(element(version, [], [Version]), Tags) -> true;
+
+        Version = ''
+    ),
+
+    % Configuration
+    (
+        not(Configuration = []), member(element(configuration, [], ConfigurationOptions), Tags) ->
+            maplist(config_option, ConfigurationOptions, Configuration);
+
+        Configuration = []
+    ),
+
+    % Dependencies
+    (
+        not(Dependencies = []), member(element(dependencies, [], DependencyElements), Tags) ->
+            maplist(artifact_element, DependencyElements, Dependencies);
+
+        Dependencies = []
+    ).
+
+artifacts(Pom, Container, Artifact) :-
+    xml_element(element(Container, _, Artifacts), Pom),
+    member(ArtifactElement, Artifacts),
+    artifact_element(Artifact, ArtifactElement).
+
+artifact_adder(Container, Artifact, element(Container, Attrs, Children), element(Container, Attrs, NewChildren)) :-
+    artifact_element(Artifact, ArtifactElement),
+    select(ArtifactElement, NewChildren, Children).
+
+add_artifact(Container, Artifact, Pom, NewPom) :-
+    modify_element(maven_xml:artifact_adder(Container, Artifact), Pom, NewPom).
 
