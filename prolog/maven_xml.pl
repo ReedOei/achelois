@@ -27,7 +27,11 @@ dependencies(Artifact, Dependencies) :-
     Artifact =.. [_, _, _, Dependencies, _].
 
 artifact_element(Artifact, Element) :-
-    Artifact =.. [ArtifactType, GroupId:ArtifactId:Version, Configuration, Dependencies, Element],
+    (
+        nonvar(Artifact) -> Artifact =.. [ArtifactType, GroupId:ArtifactId:Version, Configuration, Dependencies, Element];
+
+        true
+    ),
 
     Element = element(ArtifactType, [], Tags),
 
@@ -57,6 +61,12 @@ artifact_element(Artifact, Element) :-
             maplist(artifact_element, DependencyElements, Dependencies);
 
         Dependencies = []
+    ),
+
+    (
+        var(Artifact) -> Artifact =.. [ArtifactType, GroupId:ArtifactId:Version, Configuration, Dependencies, Element];
+
+        true
     ).
 
 artifacts(Pom, Container, Artifact) :-
