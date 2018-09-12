@@ -27,7 +27,6 @@ dependencies(Artifact, Dependencies) :-
     Artifact =.. [_, _, _, Dependencies, _].
 
 artifact_element(Artifact, Element) :-
-    writeln(Artifact),
     (
         nonvar(Artifact) -> Artifact =.. [ArtifactType, GroupId:ArtifactId:Version, Configuration, Dependencies, Element];
 
