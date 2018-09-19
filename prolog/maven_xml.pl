@@ -79,5 +79,12 @@ artifact_adder(Container, Artifact, element(Container, Attrs, Children), element
     select(ArtifactElement, NewChildren, Children).
 
 add_artifact(Container, Artifact, Pom, NewPom) :-
-    modify_element(maven_xml:artifact_adder(Container, Artifact), Pom, NewPom).
+    % If the plugins element exists
+    xml_element(element(plugins, _, _), Pom) ->
+        modify_element(maven_xml:artifact_adder(Container, Artifact), Pom, NewPom);
+    % otherwise, we need to add it:
+
+    [element(E, Attrs, Children)] = Pom,
+    select(element(build, [], [element(plugins, [], [])]), NewChildren, Children),
+    add_artifact(Container, Artifact, [element(E, Attrs, NewChildren)], NewPom).
 
