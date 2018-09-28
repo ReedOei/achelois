@@ -315,9 +315,11 @@ walk(Path, Result) :- walk(Path, always, Result).
 walk(Path, Pred, Result) :-
     call(Pred, Path),
     exists_directory(Path),
-    list_files(Path, TempFiles),
-
-    member(File, TempFiles),
+    directory_files(Path, Files),
+    member(Temp, Files),
+    not(Temp = '.'),
+    not(Temp = '..'),
+    directory_file_path(Path, Temp, File),
     call(Pred, File),
     (
         Result = File;

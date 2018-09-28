@@ -1,6 +1,6 @@
 name(achelois).
 title('Collection of tools to make writing scripts in Prolog easier.').
-version('0.4.5').
+version('0.4.6').
 author('Reed Oei', 'reedoei2@illinois.edu').
 
 home('https://github.com/ReedOei/achelois').
