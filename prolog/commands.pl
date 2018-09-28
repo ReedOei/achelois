@@ -126,17 +126,17 @@ scp(Paths, Uri, InPath) :-
     % Use -r because it doesn't affect regular files but it will automatically fully copy directories
     % which is probably what the user wants to do since they passed in a directory
     flatten([['-r'], PortArgs, Paths, [UriArg]], AllArgs),
-    run_process(path(scp), AllArgs).
+    process(path(scp), AllArgs).
 
 zip(Dir, ZipName) :-
     file_base_name(Dir, DirName),
     file_name_extension(DirName, 'zip', ZipName),
-    run_process(path(zip), ['-r', ZipName, Dir]).
+    process(path(zip), ['-r', ZipName, Dir]).
 
 unzip(ZipFile, Destination) :-
     var(Destination),
     file_name_extension(Destination, 'zip', ZipFile),
-    read_process(path(unzip), [ZipFile, '-d', Destination], _),
+    process(path(unzip), [ZipFile, '-d', Destination]),
 
     (
         % Check to make sure we don't do something like extra a.zip into ./a/a
@@ -153,7 +153,7 @@ unzip(ZipFile, Destination) :-
 
 unzip(ZipFile, Destination) :-
     nonvar(Destination),
-    read_process(path(unzip), [ZipFile, '-d', Destination], _).
+    process(path(unzip), [ZipFile, '-d', Destination]).
 
 java(MainClass, Args) :- java(MainClass, Args, []).
 java(MainClass, Args, Options) :-
@@ -254,7 +254,7 @@ read_main_class_dir(Path, SubStr, MainClass) :-
 
 main_class(File, SubStr, Class) :-
     sub_atom(File, _, _, _, SubStr),
-    read_process(path(javap), [File], Output), !,
+    process(path(javap), [File], [output(Output)]), !,
     class_name(Output, Class), !,
     sub_atom(Output, _, _, _, 'public static void main').
 

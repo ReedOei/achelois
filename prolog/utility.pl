@@ -2,8 +2,10 @@
                     process/2, process/3,
                     read_file/2, read_file_lines/2, write_file/2, list_empty/1,
                     list_files/2, run_process/2, run_process/3, run_process/4,
-				    walk/2, take_while/3, take/3, cache/3, cache_global/3, nth_parent_dir/3,
+				    walk/2, walk/3, take_while/3, take/3, cache/3, cache_global/3, nth_parent_dir/3,
                     drop/3, split/4,
+                    always/1,
+                    startswith/2, endswith/2,
                     delete_cache/0, delete_cache/1,
                     base_digits/2, base_conv/4, to_base_10/3,
                     chars_of_type/2, numbers/1, letters_lower/1, letters_upper/1, letters/1,
@@ -26,6 +28,9 @@
 :- use_module(library(clpfd)).
 
 :- use_module(term_util).
+
+startswith(A, B) :- atom_concat(B, _, A).
+endswith(A, B) :- atom_concat(_, B, A).
 
 repeated(_, []).
 repeated(X, [X|Xs]) :- repeated(X, Xs).
@@ -303,18 +308,24 @@ list_files(Path, Files) :-
     directory_file_path(Path, '*', Wildcard),
     expand_file_name(Wildcard, Files).
 
-walk(Path, Result) :-
+always(_).
+
+walk(Path, Result) :- walk(Path, always, Result).
+
+walk(Path, Pred, Result) :-
+    call(Pred, Path),
     exists_directory(Path),
     list_files(Path, TempFiles),
 
     member(File, TempFiles),
+    call(Pred, File),
     (
         Result = File;
 
         exists_directory(File),
-        walk(File, Result)
+        walk(File, Pred, Result)
     ).
-walk(Path, Path) :- exists_file(Path).
+walk(Path, Pred, Path) :- call(Pred, Path), exists_file(Path).
 
 take_while(_, [], []).
 take_while(Pred, [H|T], [H|Rest]) :- call(Pred, H), take_while(Pred, T, Rest).
