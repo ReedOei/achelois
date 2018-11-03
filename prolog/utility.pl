@@ -380,7 +380,7 @@ from_digits(Base, BaseDigits, Digit, Cur, Out) :-
     nth0(DigitVal, BaseDigits, Digit),
     Out #= Base * Cur + DigitVal.
 
-to_digits(N, Digits) :- base_digits(10, Ds), digits(10, Ds, N, Digits).
+to_digits(N, Digits) :- base_digits(10, Ds), to_digits(10, Ds, N, Digits).
 to_digits(Base, N, Digits) :-
     base_digits(Base, BaseDigits),
     to_digits(Base, BaseDigits, N, Digits).

@@ -54,7 +54,7 @@ process_parent(ProcessA, ProcessB) :-
     process_parent(ProcessA, ProcessB).
 
 processes(Processes) :-
-    read_process(path(ps), ['-ejf'], Output),
+    process(path(ps), ['-ejf'], [output(Output)]),
     atomic_list_concat(Lines, '\n', Output),
     findall(process(User, PID, PPID, PGID, SID, C, STime, TTY, Time, Cmd),
         (
