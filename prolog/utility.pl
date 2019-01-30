@@ -228,7 +228,7 @@ intercalate([H], _, [H]).
 intercalate([H|T], Sep, [H, Sep | List]) :- intercalate(T, Sep, List).
 
 lookup_path(ExeName, Path) :-
-    read_process('.', path(which), [ExeName], TempPath),
+    read_process(path(which), [ExeName], [output(TempPath)]),
     atomic_list_concat([Path|_], '\n', TempPath).
 
 process(Exe, Args) :- process(Exe, Args, []).

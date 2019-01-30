@@ -7,6 +7,7 @@
 :- use_module(library(dcg/basics)).
 :- use_module(library(filesex)).
 
+:- use_module(build_systems).
 :- use_module(utility).
 
 lookup_process(Process, N, Val) :-
@@ -74,7 +75,7 @@ uri_port_arg(Uri, PortFlag, Args) :-
 remote_command(Uri, Command, Output) :-
     uri_port_arg(Uri, '-p', Args),
     append(Args, [Command], AllArgs),
-    read_process(path(ssh), AllArgs, Output).
+    process(path(ssh), AllArgs, [output(Output)]).
 
 remote_pwd(Uri, Pwd) :-
     remote_command(Uri, 'pwd', Temp),
@@ -206,7 +207,7 @@ make_args(Args, ActualArgs) :-
     flatten(Temp, ActualArgs).
 make_arg(ArgName=ArgValue, [Result]) :-
     % If the arg name already starts with a '-', don't change it
-    not(atom_concat('-', ArgName)) ->
+    not(atom_concat('-', ArgName, _)) ->
         (
             atom_chars(ArgName, [_]) ->
                 atomic_list_concat(['-', ArgName, '=', ArgValue], '', Result);

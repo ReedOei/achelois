@@ -6,7 +6,7 @@ clone_project(Url, Commit, Path) :-
     string_concat_list([TempPath, "-", Commit], Path),
 
     run_process(path(git), ["clone", Url, Path]),
-    read_process(Path, path(git), ["checkout", Commit], _).
+    process(path(git), ["checkout", Commit], [path(Path)]).
 
 git_clone(Url, Path, Commit) :-
     var(Commit),
@@ -19,25 +19,25 @@ git_clone(Url, Path, Commit) :-
     file_base_name(Url, TempPath),
     atomic_list_concat([TempPath, '-', Commit], Path),
 
-    read_process(path(git), ['clone', Url, Path], _),
+    process(path(git), ['clone', Url, Path]),
     git_checkout(Path, Commit).
 
 % Either shows the current commit if commit is no provided, or does git checkout COMMIT in the specified path
 git_checkout(Path, Commit) :-
     var(Commit),
-    read_process(Path, path(git), ['rev-parse', 'HEAD'], Temp),
+    process(path(git), ['rev-parse', 'HEAD'], [path(Path), output(Temp)]),
     atom_concat(Commit, '\n', Temp).
 git_checkout(Path, Commit) :-
     nonvar(Commit),
-    read_process(Path, path(git), ['checkout', Commit], _).
+    process(path(git), ['checkout', Commit], [path(Path)]).
 
 git_commits(Path, Commits) :-
-    read_process(Path, path(git), ['--no-pager', 'log', '--format=%H'], Output),
+    process(path(git), ['--no-pager', 'log', '--format=%H'], [path(Path), output(Output)]),
     atomic_list_concat(AllCommits, '\n', Output),
     include(\=(''), AllCommits, Commits).
 
 git_commits(Path, Subpath, Commits) :-
-    read_process(Path, path(git), ['--no-pager', 'log', '--format=%H', '--', Subpath], Output),
+    process(path(git), ['--no-pager', 'log', '--format=%H', '--', Subpath], [path(Path), output(Output)]),
     atomic_list_concat(AllCommits, '\n', Output),
     include(\=(''), AllCommits, Commits).
 

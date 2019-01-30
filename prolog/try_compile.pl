@@ -39,14 +39,14 @@ files_exist(Path, System, Goal) :-
 run_compile(Path, System, Goal, CustomArgs, Output) :-
     % Retrieve information about the build system so we can actually run it.
     exe_name(System, SystemPath),
-    goal_name(System, Goal, GoalArgs),
+    goal_args(System, Goal, GoalArgs),
 
     output_file(Path, System, Goal, CustomArgs, OutputPath),
 
     (
         not(exists_file(OutputPath)) ->
             append(GoalArgs, CustomArgs, AllArgs),
-            read_process(Path, SystemPath, AllArgs, Output),
+            process(SystemPath, AllArgs, [path(Path), output(Output)]),
             write_file(OutputPath, Output);
 
         read_file(OutputPath, Output)

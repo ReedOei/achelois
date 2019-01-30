@@ -1,5 +1,5 @@
 :- module(build_systems, [build_system/1, goal/1, goal_args/3, exe_name/2, builds_with/2, success_string/2,
-                          maven_module/2, maven_modules/2, classpath/2, classpath/3,
+                          maven_module/2, maven_modules/2, classpath/2, classpath/3, goal_files/3,
                           quick_classpath/2, quick_classpath/3]).
 
 :- use_module(library(filesex)).
@@ -76,7 +76,7 @@ classpath(Path, Classpath) :-
 classpath(maven, Path, Classpath) :-
     tmp_file('cp', OutputPath),
     atom_concat('-Dmdep.outputFile=', OutputPath, OutputArg),
-    read_process(Path, path(mvn), ['dependency:build-classpath', OutputArg], _),
+    process(path(mvn), ['dependency:build-classpath', OutputArg], [path(Path)]),
     read_file(OutputPath, [Classpath|_]),
     delete_file(OutputPath).
 
