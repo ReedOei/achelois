@@ -1,6 +1,8 @@
 :- module(git, [git_clone/3, clone_project/3, git_commits/2, git_commits/3,
                 git_checkout/2]).
 
+:- use_module(utility).
+
 clone_project(Url, Commit, Path) :-
     file_base_name(Url, TempPath),
     string_concat_list([TempPath, "-", Commit], Path),
