@@ -43,14 +43,9 @@ run_compile(Path, System, Goal, CustomArgs, Output) :-
 
     output_file(Path, System, Goal, CustomArgs, OutputPath),
 
-    (
-        not(exists_file(OutputPath)) ->
-            append(GoalArgs, CustomArgs, AllArgs),
-            process(SystemPath, AllArgs, [path(Path), output(Output)]),
-            write_file(OutputPath, Output);
-
-        read_file(OutputPath, Output)
-    ).
+    append(GoalArgs, CustomArgs, AllArgs),
+    process(SystemPath, AllArgs, [path(Path), output(Output)]),
+    write_file(OutputPath, Output).
 
 output_file(Path, System, Goal, CustomArgs, OutputPath) :-
     maplist(surround_atom('\'', '\''), CustomArgs, QuotedArgs),
