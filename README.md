@@ -13,7 +13,7 @@ pack_install(achelois).
 # Examples:
 
 Unify `P` with the various processes of a user (similar rules exist to get other information, such as PID, command, or start time):
-```
+```prolog
 ?- user(roei, P).
 P = process(roei, 1243, 14010, 1243, 1243, 0, '15:52', 'pts/26', '00:00:00', [bash]) ;
 P = process(roei, 1455, 3299, 4205, 4205, 2, '09:57', ?, '00:08:29', ['/usr/share/spotify/spotify']) ;
@@ -24,7 +24,7 @@ P = process(roei, 2147, 2110, 2056, 1952, 0, '10:00', 'pts/7', '00:01:17', ['/ho
 
 Unify `File` with all files/directories inside another directory:
 
-```
+```prolog
 ?- walk('/home/roei/Prolog/achelois/', File).
 File = '/home/roei/Prolog/achelois/pack.pl' ;
 File = '/home/roei/Prolog/achelois/prolog' ;
@@ -38,13 +38,13 @@ false.
 Run a Java program (that builds using Maven).
 You __don't__ have to provide a fully qualified name, just the last part (suffix) of it.
 This means you can just write a class name and it will find a fully qualified name (or names) which match it.
-```
+```prolog
 ?- java('Main', ['argument']).
 ```
 
 Clone a git repo (Path and Commit terms are unified with the path it gets downloaded to and the commit).
 You can also specify the path/commit if you wish.
-```
+```prolog
 ?- git_clone('https://github.com/ReedOei/achelois', Path, Commit).
 Clonage dans 'achelois'...
 remote: Counting objects: 177, done.
@@ -59,14 +59,14 @@ Commit = '1570038399540fc6979db40c306c6d750f2e2737' .
 
 Copy files to a remote computer (assumes you have the SSH keys and everything set up).
 Can optionally specify the destination (will be unified with the default directory you SSH into otherwise).
-```
+```prolog
 ?- scp('path', 'user@host', Path).
 Path = '/home/user'.
 ```
 
 Compile a Java project (using Maven, Gradle, Ant, or Make).
 The plan is to expand this so that it will work with other languages.
-```
+```prolog
 ?- compiles('/home/roei/Java/eunomia').
 ```
 
