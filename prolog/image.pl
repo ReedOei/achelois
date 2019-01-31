@@ -5,6 +5,8 @@
 :- use_module(bytes).
 :- use_module(utility).
 
+% NOTE: currently not working
+
 image_file(image(Format, Pixels), Path) :-
     nonvar(Pixels) ->
         open(Path, write, Stream, [type(binary)]),
