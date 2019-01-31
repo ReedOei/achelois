@@ -15,9 +15,8 @@ pack_install(achelois).
 Run a process and store it's output in a variable, using a path other than the current directory. The last arguments are all options and can be left empty/not passed:
 
 ```prolog
-?- process(path(ls), ['Prolog/achelois']).
-pack.pl  prolog  README.md
-true.
+?- process(path(ls), [], [path('Prolog/achelois'), output(Output)]).
+Output = 'pack.pl\nprolog\nREADME.md\n' .
 ```
 
 Unify `P` with the various processes of a user (similar rules exist to get other information, such as PID, command, or start time):
