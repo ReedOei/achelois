@@ -1,13 +1,12 @@
 :- module(utility, [string_concat_list/2, intercalate/3, lookup_path/2,
                     process/2, process/3,
                     read_file/2, read_file_lines/2, write_file/2, list_empty/1,
-                    list_files/2, run_process/2, run_process/3, run_process/4,
-				    walk/2, walk/3, take_while/3, take/3, cache/3, cache_global/3, nth_parent_dir/3,
-                    drop/3, split/4,
+                    run_process/2, run_process/3, run_process/4,
+                    cache/3, cache_global/3,
+                    drop/3, drop_while/3, split/4, take_while/3, take/3,
                     always/1,
                     startswith/2, endswith/2,
                     delete_cache/0, delete_cache/1,
-                    base_digits/2, base_conv/4, to_base_10/3,
                     chars_of_type/2, numbers/1, letters_lower/1, letters_upper/1, letters/1,
                     unique/1, unique/2,
                     sublist/2,
@@ -15,19 +14,16 @@
                     parse/2,
                     call_if_var/2,
                     line/2, next_matching/2,
-                    file_format/2,
                     range/3,
                     partition/2, selectN/4, group/3,
                     call_or_inverse/2, apply_each/2,
-                    pad_begin/4, pad_end/4, repeated/2,
-                    lcm/3, gcd/3, first_numbers/2, first_numbers/3, sumf/2, averagef/2,
-                    seq/2, arith_seq/2, geom_seq/2, increasing/1, to_digits/2, to_digits/3, to_digits/4,
-                    from_digits/2, from_digits/4, from_digits/5]).
+                    pad_begin/4, pad_end/4, repeated/2]).
 
 :- use_module(library(filesex)).
 :- use_module(library(clpfd)).
 
 :- use_module(term_util).
+:- use_module(path).
 
 startswith(A, B) :- atom_concat(B, _, A).
 endswith(A, B) :- atom_concat(_, B, A).
@@ -81,6 +77,11 @@ drop(N, [_|Xs], Rest) :-
     N1 #= N - 1,
     drop(N1, Xs, Rest).
 
+drop_while(_, [], []).
+drop_while(Pred, [X|Xs], Rest) :-
+    call(Pred, X) -> drop_while(Pred, Xs, Rest);
+    Rest = [X|Xs].
+
 split(0, Xs, [], Xs).
 split(N, [X|Xs], [X|Taken], Dropped) :-
     N #> 0,
@@ -104,10 +105,6 @@ range(A, B, Ns) :- findall(N, between(A, B, N), Ns).
 
 % By default the format is the same as the extension, but all lowercase.
 % Can be extended with your specific case if necessary.
-file_format(Path, Format) :-
-    file_name_extension(_, Ext, Path),
-    downcase_atom(Ext, Format).
-
 line(Line, Stream) :-
     read_line_to_codes(Stream, Codes),
     atom_codes(Line, Codes);
@@ -142,19 +139,6 @@ surround_atom(Left, Right, A, B) :-
     nonvar(Left), nonvar(Right), nonvar(A),
     atom_concat(Left, A, Temp),
     atom_concat(Temp, Right, B).
-
-nth_parent_dir(0, Path, Path).
-nth_parent_dir(N, Path, Parent) :-
-    absolute_file_name(Path, AbsPath),
-    file_directory_name(AbsPath, TempParent),
-    N1 #= N - 1,
-    nth_parent_dir(N1, TempParent, Parent).
-
-factorial(0, 1).
-factorial(N, F) :-
-    N1 #= N - 1,
-    factorial(N1, F1),
-    F #= N * F1.
 
 % Delete everything
 delete_cache :-
@@ -304,30 +288,7 @@ write_file(OutputPath, Str) :-
     write(Stream, Str),
     close(Stream).
 
-list_files(Path, Files) :-
-    directory_file_path(Path, '*', Wildcard),
-    expand_file_name(Wildcard, Files).
-
 always(_).
-
-walk(Path, Result) :- walk(Path, always, Result).
-
-walk(Path, Pred, Result) :-
-    call(Pred, Path),
-    exists_directory(Path),
-    directory_files(Path, Files),
-    member(Temp, Files),
-    not(Temp = '.'),
-    not(Temp = '..'),
-    directory_file_path(Path, Temp, File),
-    call(Pred, File),
-    (
-        Result = File;
-
-        exists_directory(File),
-        walk(File, Pred, Result)
-    ).
-walk(Path, Pred, Path) :- call(Pred, Path), exists_file(Path).
 
 take_while(_, [], []).
 take_while(Pred, [H|T], [H|Rest]) :- call(Pred, H), take_while(Pred, T, Rest).
@@ -364,59 +325,6 @@ letters(Letters) :-
 letters_lower(LowerLetters) :- atom_chars('abcdefghijklmnopqrstuvwxyz', LowerLetters).
 letters_upper(UpperLetters) :- atom_chars('ABCDEFGHIJKLMNOPQRSTUVWXYZ', UpperLetters).
 
-base_digits(Base, BaseDigits) :-
-    numbers(Numbers),
-    letters_lower(LowerLetters),
-    letters_upper(UpperLetters),
-    flatten([Numbers, LowerLetters, UpperLetters], DigitList),
-    take(Base, DigitList, BaseDigits).
-
-from_digits(NumDigits, Out) :-
-    base_digits(10, FromDigits),
-    from_digits(10, FromDigits, NumDigits, Out).
-from_digits(FromBase, FromDigits, NumDigits, Out) :-
-    foldl(from_digits(FromBase, FromDigits), NumDigits, 0, Out).
-from_digits(Base, BaseDigits, Digit, Cur, Out) :-
-    nth0(DigitVal, BaseDigits, Digit),
-    Out #= Base * Cur + DigitVal.
-
-to_digits(N, Digits) :- base_digits(10, Ds), to_digits(10, Ds, N, Digits).
-to_digits(Base, N, Digits) :-
-    base_digits(Base, BaseDigits),
-    to_digits(Base, BaseDigits, N, Digits).
-to_digits(Base, BaseDigits, N, Digits) :-
-    N #< Base,
-    nth0(N, BaseDigits, NChar),
-    Digits = [NChar];
-
-    N #>= Base,
-    DVal #= N mod Base,
-    NewN #= N div Base,
-
-    to_digits(Base, BaseDigits, NewN, Rest),
-    nth0(DVal, BaseDigits, D),
-    append(Rest, [D], Digits).
-
-to_base_10(FromBase, N, M) :-
-    base_conv(FromBase, 10, N, TempM),
-    term_to_atom(M, TempM).
-
-base_conv(FromBase, ToBase, N, M) :-
-    base_digits(FromBase, FromDigits),
-
-    (
-        atom(N),
-        atom_chars(N, NAtom);
-
-        not(atom(N)),
-        term_to_atom(N, TempAtom),
-        atom_chars(TempAtom, NAtom)
-    ),
-
-    from_digits(FromBase, FromDigits, NAtom, Base10),
-
-    to_digits(ToBase, Base10, MAtom),
-    atom_chars(M, MAtom).
 
 unique(L) :- unique(L, L).
 
@@ -424,53 +332,4 @@ unique([], []).
 unique([H|T], [H|Rest]) :-
     findall(X, (member(X, T), dif(X, H)), Temp),
     unique(Temp, Rest).
-
-seq(_, []).
-seq(_, [_]).
-seq(Pred, [Start, Next|Rest]) :-
-    call(Pred, Next, Start),
-    seq(Pred, [Next|Rest]).
-
-increasing([]).
-increasing([_]).
-increasing([A,B|Tail]) :-
-    A #=< B,
-    increasing([B|Tail]).
-
-arith_seq_f(Inc, Next, Start) :- Next #= Start + Inc.
-arith_seq(Inc, Seq) :- seq(arith_seq_f(Inc), Seq).
-
-geom_seq_f(M, Next, Start) :- Next #= M * Start.
-geom_seq(M, Seq) :- seq(geom_seq_f(M), Seq).
-
-first_numbers(_, _, []).
-first_numbers(Property, X, [X|T]) :-
-    call(Property, X),
-    Next #= X + 1,
-    first_numbers(Property, Next, T).
-first_numbers(Property, X, T) :-
-    not(call(Property, X)),
-    Next #= X + 1,
-    first_numbers(Property, Next, T).
-
-first_numbers(Property, Numbers) :- first_numbers(Property, 0, Numbers).
-
-lcm(A, B, L) :-
-    gcd(A, B, G),
-    L * G #= A * B.
-
-gcd(A, 0, A).
-gcd(A, B, G) :-
-    NewB #= A mod B,
-    gcd(B, NewB, G).
-
-sumf([], 0.0).
-sumf([H|T], S) :-
-    sumf(T, SumT),
-    S is SumT + H.
-
-averagef(Values, Average) :-
-    sumf(Values, Sum),
-    length(Values, L),
-    Average is Sum / float(L).
 

@@ -1,5 +1,6 @@
 :- module(bytes, [bytestream/2, bytestream_int/3, read_all_bytes/2, byte_group/2, byte_groups/2]).
 
+:- use_module(math).
 :- use_module(utility).
 
 byte_groups(Stream, Groups) :- apply_each(bytes:byte_group(Stream), Groups).
