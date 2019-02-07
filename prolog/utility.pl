@@ -291,34 +291,58 @@ process(Exe, Args, Options) :-
             atomic_list_concat(Lines, '\n', Output)
         );
 
-        run_process(Path, Exe, Args, ExitCode, PID)
+        run_process(Path, Exe, Args, ExitCode, PID, Options)
     ).
 
-process_stream(Path, Stdout, Stderr, Exe, Args, PID, Options) :-
-    CreateArgs = [cwd(Path), stdout(pipe(Stdout)), stderr(pipe(Stderr)), process(PID), detached(true)],
-    (
-        member(input(Stdin), Options) -> append(CreateArgs, [stdin(pipe(Stdin))]);
-        true
-    ),
-    process_create(Exe, Args, CreateArgs).
+copy_data(Source, DestStream) :-
+    nonvar(Source),
+    nonvar(DestStream),
+    is_stream(Source),
+    copy_stream_data(Source, DestStream),
+    close(DestStream).
+copy_data(Source, DestStream) :-
+    nonvar(Source),
+    nonvar(DestStream),
+    atom(Source),
+    writeln(DestStream, Source),
+    close(DestStream).
+% If both vars, do nothing
+copy_data(Source, DestStream) :-
+    var(Source),
+    var(DestStream).
 
-run_process(Path, Exe, Args, ExitCode, PID) :-
+process_stream(Path, Stdout, Stderr, Exe, Args, PID, Options) :-
+    InitArgs = [cwd(Path), stdout(pipe(Stdout)), stderr(pipe(Stderr)), process(PID), detached(true)],
+    (
+        member(input(Stdin), Options) -> append(InitArgs, [stdin(pipe(InputStream))], CreateArgs);
+        CreateArgs = InitArgs
+    ),
+    process_create(Exe, Args, CreateArgs),
+    copy_data(Stdin, InputStream).
+
+run_process(Path, Exe, Args, ExitCode, PID, Options) :-
+    InitArgs = [cwd(Path), process(PID), detached(true)],
+    (
+        member(input(Stdin), Options) -> append(InitArgs, [stdin(pipe(InputStream))], CreateArgs);
+        CreateArgs = InitArgs
+    ),
     setup_call_cleanup(
-        process_create(Exe, Args, [cwd(Path), process(PID), detached(true)]),
-        true,
+        process_create(Exe, Args, CreateArgs),
+        copy_data(Stdin, InputStream),
         process_wait(PID, exit(ExitCode))).
 
 read_process(Exe, Args, Output) :- read_process('.', Exe, Args, Output).
 read_process(Path, Exe, Args, Output) :- read_process(Path, Exe, Args, Output, _, _, []).
 read_process(Path, Exe, Args, Output, ExitCode, PID, Options) :-
-    CreateArgs = [stdout(pipe(OutputStream)), stderr(pipe(OutputStream)), cwd(Path), process(PID), detached(true)],
+    InitArgs = [stdout(pipe(OutputStream)), stderr(pipe(OutputStream)), cwd(Path), process(PID), detached(true)],
     (
-        member(input(Stdin), Options) -> append(CreateArgs, [stdin(pipe(Stdin))]);
-        true
+        member(input(Stdin), Options) -> append(InitArgs, [stdin(pipe(InputStream))], CreateArgs);
+        CreateArgs = InitArgs
     ),
     setup_call_cleanup(
         process_create(Exe, Args, CreateArgs),
         (
+            copy_data(Stdin, InputStream),
             read_string(OutputStream, _, OutputStr),
             atom_string(Output, OutputStr)
         ),
