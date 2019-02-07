@@ -1,9 +1,10 @@
 :- module(utility, [string_concat_list/2, intercalate/3, lookup_path/2,
                     process/2, process/3,
                     read_file/2, read_file_lines/2, write_file/2, list_empty/1,
-                    run_process/2, run_process/3, run_process/4,
                     cache/3, cache_global/3,
                     drop/3, drop_while/3, split/4, take_while/3, take/3,
+                    min_by/3, max_by/3, group_by_dict/3, group_by/3,
+                    replace_atom/4, trim/2, trim_left/2, trim_right/2, empty/1,
                     always/1,
                     startswith/2, endswith/2,
                     delete_cache/0, delete_cache/1,
@@ -24,6 +25,58 @@
 
 :- use_module(term_util).
 :- use_module(path).
+
+min_by(Comp, [X|Xs], Min) :- foldl(Comp, Xs, X, Min).
+max_by(Comp, [X|Xs], Max) :- foldl(Comp, Xs, X, Max).
+
+add_to_groups(Pred, X, Dict, NewDict) :-
+    call(Pred, X, Key),
+    (
+        List = Dict.get(Key) ->
+            NewDict = Dict.put(Key, [X|List]);
+        NewDict = Dict.put(Key, [X])
+    ).
+
+group_by_dict(_, [], pairs{}).
+group_by_dict(Pred, [X|Xs], Dict) :-
+    group_by_dict(Pred, Xs, TempDict),
+    add_to_groups(Pred, X, TempDict, Dict).
+
+group_by(Pred, Xs, Groups) :-
+    group_by_dict(Pred, Xs, Dict),
+    dict_pairs(Dict, pairs, Pairs),
+    pairs_values(Pairs, Groups).
+
+rep(A, B, A, B).
+rep(A, _, C, A) :- not(A = C).
+
+replace_atom(Search, Rep, Atom, NewAtom) :-
+    atom_chars(Atom, Chars),
+    maplist(rep(Search, Rep), Chars, NewChars),
+    atom_chars(NewAtom, NewChars).
+
+whitespace(' ').
+whitespace('\t').
+whitespace('\r').
+whitespace('\n').
+
+trim_left(Atom, Trimmed) :-
+    atom_chars(Atom, Chars),
+    drop_while(whitespace, Chars, NewChars),
+    atom_chars(Trimmed, NewChars).
+
+trim_right(Atom, Trimmed) :-
+    atom_chars(Atom, Chars),
+    reverse(Chars, RevChars),
+    drop_while(whitespace, RevChars, RevNewChars),
+    reverse(RevNewChars, NewChars),
+    atom_chars(Trimmed, NewChars).
+
+trim(Atom, Trimmed) :-
+    trim_left(Atom, Temp),
+    trim_right(Temp, Trimmed).
+
+empty(Atom) :- trim(Atom, '').
 
 startswith(A, B) :- atom_concat(B, _, A).
 endswith(A, B) :- atom_concat(_, B, A).
@@ -218,57 +271,61 @@ lookup_path(ExeName, Path) :-
 process(Exe, Args) :- process(Exe, Args, []).
 process(Exe, Args, Options) :-
     (
-        member(path(Path), Options);
-        Path = '.'
+        member(path(Path), Options) -> true; Path = '.'
     ),
 
     (
-        member(exit_code(ExitCode), Options);
-        true
+        member(exit_code(ExitCode), Options) -> true; true
     ),
 
     (
-        member(stream(Stream), Options) -> process_stream(Stream, Exe, Args, Options);
+        member(pid(PID), Options) -> true; true
+    ),
 
-        member(output(Output), Options) -> read_process(Path, Exe, Args, Output, ExitCode);
+    (
+        member(stream(Stream), Options) -> process_stream(Path, Stream, Stream, Exe, Args, PID, Options);
+        member(output(Output), Options) -> read_process(Path, Exe, Args, Output, ExitCode, PID, Options);
+        member(lines(Lines), Options) ->
+        (
+            read_process(Path, Exe, Args, Output, ExitCode, PID, Options),
+            atomic_list_concat(Lines, '\n', Output)
+        );
 
-        run_process(Path, Exe, Args, ExitCode)
+        run_process(Path, Exe, Args, ExitCode, PID)
     ).
 
-process_stream(Stream, Exe, Args, Options) :-
+process_stream(Path, Stdout, Stderr, Exe, Args, PID, Options) :-
+    CreateArgs = [cwd(Path), stdout(pipe(Stdout)), stderr(pipe(Stderr)), process(PID), detached(true)],
     (
-        member(path(Path), Options);
-        Path = '.'
-    ),
-
-    (
-        member(pid(PID), Options);
+        member(input(Stdin), Options) -> append(CreateArgs, [stdin(pipe(Stdin))]);
         true
     ),
+    process_create(Exe, Args, CreateArgs).
 
-    process_create(Exe, Args, [cwd(Path), stdout(pipe(Stream)), stderr(pipe(Stream)), process(PID), detached(true)]).
-
-run_process(Exe, Args) :- run_process('.', Exe, Args).
-run_process(Path, Exe, Args) :- run_process(Path, Exe, Args, _).
-run_process(Path, Exe, Args, ExitCode) :-
+run_process(Path, Exe, Args, ExitCode, PID) :-
     setup_call_cleanup(
         process_create(Exe, Args, [cwd(Path), process(PID), detached(true)]),
         true,
         process_wait(PID, exit(ExitCode))).
 
 read_process(Exe, Args, Output) :- read_process('.', Exe, Args, Output).
-read_process(Path, Exe, Args, Output) :- read_process(Path, Exe, Args, Output, _).
-read_process(Path, Exe, Args, Output, ExitCode) :-
-    setup_call_cleanup(
-        process_create(Exe, Args, [stdout(pipe(OutputStream)), stderr(pipe(OutputStream)), cwd(Path), process(PID), detached(true)]),
+read_process(Path, Exe, Args, Output) :- read_process(Path, Exe, Args, Output, _, _, []).
+read_process(Path, Exe, Args, Output, ExitCode, PID, Options) :-
+    CreateArgs = [stdout(pipe(OutputStream)), stderr(pipe(OutputStream)), cwd(Path), process(PID), detached(true)],
     (
-        read_string(OutputStream, _, OutputStr),
-        atom_string(Output, OutputStr)
+        member(input(Stdin), Options) -> append(CreateArgs, [stdin(pipe(Stdin))]);
+        true
     ),
-    (
-        process_wait(PID, exit(ExitCode)),
-        close(OutputStream)
-    )).
+    setup_call_cleanup(
+        process_create(Exe, Args, CreateArgs),
+        (
+            read_string(OutputStream, _, OutputStr),
+            atom_string(Output, OutputStr)
+        ),
+        (
+            process_wait(PID, exit(ExitCode)),
+            close(OutputStream)
+        )).
 
 read_file(Path, Contents) :-
     setup_call_cleanup(
