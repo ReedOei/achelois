@@ -48,7 +48,7 @@ group_by(Pred, Xs, Groups) :-
     pairs_values(Pairs, Groups).
 
 rep(A, B, A, B).
-rep(A, _, C, A) :- not(A = C).
+rep(A, _, C, C) :- not(A = C).
 
 replace_atom(Search, Rep, Atom, NewAtom) :-
     atom_chars(Atom, Chars),

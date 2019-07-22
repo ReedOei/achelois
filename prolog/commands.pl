@@ -8,6 +8,7 @@
 :- use_module(library(filesex)).
 
 :- use_module(build_systems).
+:- use_module(path).
 :- use_module(utility).
 
 lookup_process(Process, N, Val) :-

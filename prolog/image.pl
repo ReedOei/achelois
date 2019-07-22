@@ -3,6 +3,7 @@
 :- use_module(library(clpfd)).
 
 :- use_module(bytes).
+:- use_module(path).
 :- use_module(utility).
 
 % NOTE: currently not working

@@ -4,6 +4,8 @@
 :- use_module(library(clpfd)).
 :- use_module(library(filesex)).
 
+:- use_module(utility).
+
 file_stream(File, Mode, Stream, Pred) :-
     setup_call_cleanup(
         open(File, Mode, Stream),

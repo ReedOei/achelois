@@ -4,6 +4,7 @@
 
 :- use_module(library(filesex)).
 
+:- use_module(path).
 :- use_module(utility).
 
 build_system(maven).
