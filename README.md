@@ -19,15 +19,7 @@ Run a process and store it's output in a variable, using a path other than the c
 Output = 'pack.pl\nprolog\nREADME.md\n' .
 ```
 
-Unify `P` with the various processes of a user (similar rules exist to get other information, such as PID, command, or start time):
-```prolog
-?- user(roei, P).
-P = process(roei, 1243, 14010, 1243, 1243, 0, '15:52', 'pts/26', '00:00:00', [bash]) ;
-P = process(roei, 1455, 3299, 4205, 4205, 2, '09:57', ?, '00:08:29', ['/usr/share/spotify/spotify']) ;
-P = process(roei, 1952, 14010, 1952, 1952, 0, '10:00', 'pts/7', '00:00:00', [bash]) ;
-P = process(roei, 2147, 2110, 2056, 1952, 0, '10:00', 'pts/7', '00:01:17', ['/home/roei/idea-IU-181.4445.78/bin/fsnotifier64']) ;
-...
-```
+Note that `path` in the above example is the CWD to run the process in---of course, you can pass also arguments to `ls` to achieve this same result.
 
 Unify `File` with all files/directories inside another directory:
 
@@ -40,13 +32,6 @@ File = '/home/roei/Prolog/achelois/prolog/build_systems.pl' ;
 ...
 File = '/home/roei/Prolog/achelois/prolog/utility.pl' ;
 false.
-```
-
-Run a Java program (that builds using Maven).
-You __don't__ have to provide a fully qualified name, just the last part (suffix) of it.
-This means you can just write a class name and it will find a fully qualified name (or names) which match it.
-```prolog
-?- java('Main', ['argument']).
 ```
 
 Clone a git repo (Path and Commit terms are unified with the path it gets downloaded to and the commit).
@@ -71,9 +56,25 @@ Can optionally specify the destination (will be unified with the default directo
 Path = '/home/user'.
 ```
 
+Unify `P` with the various processes of a user (similar rules exist to get other information, such as PID, command, or start time):
+```prolog
+?- user(roei, P).
+P = process(roei, 1243, 14010, 1243, 1243, 0, '15:52', 'pts/26', '00:00:00', [bash]) ;
+P = process(roei, 1455, 3299, 4205, 4205, 2, '09:57', ?, '00:08:29', ['/usr/share/spotify/spotify']) ;
+P = process(roei, 1952, 14010, 1952, 1952, 0, '10:00', 'pts/7', '00:00:00', [bash]) ;
+P = process(roei, 2147, 2110, 2056, 1952, 0, '10:00', 'pts/7', '00:01:17', ['/home/roei/idea-IU-181.4445.78/bin/fsnotifier64']) ;
+...
+```
+
+Run a Java program (that builds using Maven).
+You __don't__ have to provide a fully qualified name, just the last part (suffix) of it.
+This means you can just write a class name and it will find a fully qualified name (or names) which match it.
+```prolog
+?- java('Main', ['argument']).
+```
+
 Compile a Java project (using Maven, Gradle, Ant, or Make).
 The plan is to expand this so that it will work with other languages.
 ```prolog
 ?- compiles('/home/roei/Java/eunomia').
 ```
-
